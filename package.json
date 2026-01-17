@@ -1,9 +1,12 @@
 {
-  "name": "ide-rules-migrate",
+  "name": "@jl-org/ai-sync",
   "version": "1.0.0",
   "description": "IDE Rules 迁移脚本",
   "type": "module",
   "main": "migrate.js",
+  "bin": {
+    "ai-sync": "./src/index.ts"
+  },
   "scripts": {
     "migrate": "tsx src/index.ts",
     "test": "vitest",
