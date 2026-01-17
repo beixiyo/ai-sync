@@ -1,0 +1,45 @@
+---
+description: Base Code Rule
+globs: *.ts,*.tsx,*.js,*.jsx,*.vue
+alwaysApply: false
+---
+
+优先参考项目配置文件（`package.json`、`vite.config.js` 等），mono-repo 注意 `pnpm-workspace.yaml`。这些是理解技术栈的唯一真实来源，不要基于通用知识假设
+
+## 项目规范
+- 包管理器：默认 pnpm
+- 技术栈：JS 项目默认 TypeScript + Vite（已有其他构建工具则忽略）
+- 路径别名：检查 `tsconfig.json` 的 `paths` 配置
+
+## 代码风格
+- 格式：无分号、两格缩进、单引号
+- 变量：不可变用 `const`
+- 三元：多行编写
+- 导出：避免 `export default`，用具名导出，可创建 `**/index.ts` 统一导出
+- 避免不必要的抽象层
+
+## 代码质量
+- 设计原则：SRP、OCP、LSP、ISP、DRY、KISS、避免硬编码
+- 类型：严格 TS 类型，导出的 `type`/`interface` 提供 JSDoc（含 `@default`），TS 中 JSDoc 无需类型信息
+- 运行 TS：用 `tsx`（已全局安装：`npm i tsx -g`）
+
+## 组件设计
+- 避免硬编码：通过 props/slots/children 暴露可变部分
+- 单一职责：只负责 UI 渲染与交互，不掺杂业务数据/状态管理
+- 最大化可控性：插槽、回调、受控模式
+- 无副作用：不直接操作 DOM/全局状态/路由，依赖通过 props 注入
+- 样式：TailwindCSS，支持 className/style 覆盖
+- 组合优于继承
+- 动画：自然流畅（framer-motion/motion-v），UI 简洁冷静（参考 Vercel、Grok、Lovable）
+
+## 文档与交互
+- 代码即文档：函数加注释，复杂逻辑说明流程，文件开头说明作用
+- 文本格式：英文用空格隔开，markdown 特殊词用斜体、重点加粗、两格缩进，多用表格
+- 语言：永远中文回答（除非明确要求其他语言），搜索优先英文
+- 安全：私密数据放环境变量并提示用户填写
+- 行为：不确定时用 `// @TODO` 占位或提问，禁止编造函数/API，优先检索英文资料
+
+## 搜索
+- github 使用 `gh` 搜索
+- 文档使用 `ref-mcp`、`context7-mcp`
+- 代码示例等使用 `gh-grep-mcp`

@@ -1,0 +1,73 @@
+---
+description: React Code Rule
+globs: *.ts,*.tsx,*.js,*.jsx
+alwaysApply: false
+---
+
+## 组件模板
+```tsx
+import { cn } from 'utils'
+import { memo } from 'react'
+import { CompProps } from './types.ts'
+
+export const Comp = memo<CompProps>((props) => {
+  const { style, className } = props
+  return <div className={cn('CompContainer', className)} style={style} />
+})
+
+Comp.displayName = 'Comp'
+```
+
+```ts
+export type CompProps = {} & React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>
+```
+
+## 代码要求
+- 组件化：一个组件一个文件，具名导出
+- 优化：项目用 babel-plugin-react-compiler 自动优化，通常无须手动memo，通用组件库（`src/components`）需手动 memo/useCallback
+- 路由：用 `@jl-org/vite-auto-route` 时，`/views/**/page.tsx` 直接 `export default`
+- 目录：`组件名/index.tsx` 或 `index.ts` 统一导出
+- 组件库：优先用 `src/components/**` 或 `packages/comps` 已有组件
+
+## 状态管理
+- 用 jotai，可从 `hooks` 包导入 `createUseAtoms`（`packages/hooks/src/jotaiTool.ts`）
+
+## CSS
+- TailwindCSS：用根目录设计 Token，无法实现时用行内样式，必须用 CSS 时用 `.module.scss`
+- 类名：不用未定义类名，用 `bg-[#409eff]` 语法，不用动态拼接 `h-[${h}px]`
+- 深色模式：`tailwind.config` 变量已自动适配，无需 `dark:` 前缀
+
+## 库
+- 禁止：shadcn/ui
+- 推荐：lucide-react（图标）、`cn`（clsx+tailwind-merge，搜索 `export function cn`）、class-variance-authority、framer-motion
+
+## 性能优化
+- 列表渲染：只传递单个 item，避免传递整个数组
+- 闭包陷阱：遇到 useState 闭包问题时用项目中的 `useGetState.ts`（不要滥用），项目没有则告知
+
+## React 19.2
+- `<Activity>`：替代条件渲染，隐藏时保留状态，`mode="visible|hidden"`
+  ```tsx
+  import { Activity } from 'react'
+  <Activity mode={isActive ? 'visible' : 'hidden'}>
+    <ExpensiveForm />
+  </Activity>
+  ```
+
+- `useEffectEvent`：提取事件逻辑，访问最新值但不触发 effect 重运行，不能作为依赖项
+  ```jsx
+  import { useEffect, useEffectEvent } from 'react'
+
+  function ChatRoom({ roomId, theme }) {
+    const onConnected = useEffectEvent(() => {
+      showNotification('Connected!', theme) // 总会获取最新 theme
+    })
+
+    useEffect(() => {
+      const conn = createConnection(roomId)
+      conn.on('connected', onConnected)
+      conn.connect()
+      return () => conn.disconnect()
+    }, [roomId]); // 无需将 onConnected 或 theme 加入依赖
+  }
+  ```
