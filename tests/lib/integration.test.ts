@@ -92,7 +92,7 @@ describe('集成测试', () => {
     describe('commands 转换', () => {
       it('应该成功将 Claude Commands 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.claude', 'commands')
-        const migrator = new CommandsMigrator(sourceDir, allToolsWithCustom, testOptions)
+        const migrator = new CommandsMigrator(sourceDir, allToolsWithCustom, testOptions, TOOL_CONFIGS as any)
 
         const result = await migrator.migrate()
 
@@ -144,7 +144,7 @@ describe('集成测试', () => {
     describe('skills 转换', () => {
       it('应该成功将 Claude Skills 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.claude', 'skills')
-        const migrator = new SkillsMigrator(sourceDir, allToolsWithCustom, testOptions)
+        const migrator = new SkillsMigrator(sourceDir, allToolsWithCustom, testOptions, TOOL_CONFIGS as any)
 
         const result = await migrator.migrate()
 
@@ -172,7 +172,7 @@ describe('集成测试', () => {
     describe('rules 转换', () => {
       it('应该成功将 Claude Rules 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.cursor', 'rules')
-        const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions)
+        const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions, TOOL_CONFIGS as any)
 
         const result = await migrator.migrate()
 
@@ -215,7 +215,7 @@ describe('集成测试', () => {
     describe('mCP 转换', () => {
       it('应该成功将 Claude MCP 配置转换到所有工具（包括自定义工具）', async () => {
         const sourceFile = join(testTargetDir, '.claude.json')
-        const migrator = new MCPMigrator(sourceFile, allToolsWithCustom, testOptions)
+        const migrator = new MCPMigrator(sourceFile, allToolsWithCustom, testOptions, TOOL_CONFIGS as any)
 
         const result = await migrator.migrate()
 
@@ -259,7 +259,7 @@ describe('集成测试', () => {
   describe('cursor Rules → 其他工具转换', () => {
     it('应该成功将 Cursor Rules 转换到所有工具（包括自定义工具）', async () => {
       const sourceDir = join(testTargetDir, '.cursor', 'rules')
-      const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions)
+      const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions, TOOL_CONFIGS as any)
 
       const result = await migrator.migrate()
 

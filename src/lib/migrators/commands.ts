@@ -2,13 +2,12 @@
  * Commands 迁移器
  */
 
-import type { ToolKey } from '../config'
+import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import chalk from 'chalk'
-import { TOOL_CONFIGS } from '../config'
 import { convertMarkdownToTOML } from '../converters/markdown-to-toml'
 import { copyDirectory, getMarkdownFiles, readFile, writeFile } from '../utils/file'
 import { BaseMigrator } from './base'
@@ -17,8 +16,8 @@ import { BaseMigrator } from './base'
  * Commands 迁移器类
  */
 export class CommandsMigrator extends BaseMigrator {
-  constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions) {
-    super(sourceDir, targetTools, options, 'commands')
+  constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions, tools: Record<ToolKey, ToolConfig>) {
+    super(sourceDir, targetTools, options, 'commands', tools)
   }
 
   /**
@@ -26,9 +25,9 @@ export class CommandsMigrator extends BaseMigrator {
    */
   protected async migrateForTool(tool: ToolKey, targetDir: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
-    const toolConfig = TOOL_CONFIGS[tool]
+    const toolConfig = this.tools[tool]
 
-    // 如果有自定义 transform 函数，使用自定义逻辑
+    /** 如果有自定义 transform 函数，使用自定义逻辑 */
     if (toolConfig?.commands?.transform) {
       await this.migrateWithCustomTransform(targetDir, results, tool)
       return results
@@ -38,7 +37,7 @@ export class CommandsMigrator extends BaseMigrator {
       await this.migrateWithConversion(targetDir, results, tool)
     }
     else {
-      // 默认直接复制 (cursor, claude, opencode 等)
+      /** 默认直接复制 (cursor, claude, opencode 等) */
       const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
       this.sumStats(results, stats)
     }
@@ -54,7 +53,7 @@ export class CommandsMigrator extends BaseMigrator {
     results: MigrationStats,
     tool: ToolKey,
   ): Promise<void> {
-    const transform = TOOL_CONFIGS[tool]?.commands?.transform
+    const transform = this.tools[tool]?.commands?.transform
     if (!transform)
       return
 
@@ -73,12 +72,14 @@ export class CommandsMigrator extends BaseMigrator {
         }
 
         await writeFile(targetPath, transformed, 'utf-8')
-        console.log(chalk.green(`✓ 自定义转换: ${file} (${tool})`))
+        console.log(chalk.green(`✓ 自定义转换: ${file} (${tool}) (Custom transform: ${file} (${tool}))`))
         results.success++
       }
       catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        console.error(chalk.red(`✗ 自定义转换失败: ${file}`), errorMessage)
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error'
+        console.error(chalk.red(`✗ 自定义转换失败: ${file} (Custom transform failed: ${file})`), errorMessage)
         results.error++
         results.errors.push({ file, error: errorMessage })
       }
@@ -101,12 +102,14 @@ export class CommandsMigrator extends BaseMigrator {
 
       try {
         await convertMarkdownToTOML(sourcePath, targetPath)
-        console.log(chalk.green(`✓ 转换: ${file} → ${file.replace('.md', '.toml')} (${tool})`))
+        console.log(chalk.green(`✓ 转换: ${file} → ${file.replace('.md', '.toml')} (${tool}) (Transform: ${file} → ${file.replace('.md', '.toml')} (${tool}))`))
         results.success++
       }
       catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        console.error(chalk.red(`✗ 转换失败: ${file}`), errorMessage)
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error'
+        console.error(chalk.red(`✗ 转换失败: ${file} (Transform failed: ${file})`), errorMessage)
         results.error++
         results.errors.push({ file, error: errorMessage })
       }

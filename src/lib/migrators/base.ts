@@ -1,4 +1,4 @@
-import type { ConfigType, ToolKey } from '../config'
+import type { ConfigType, ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { getToolPath } from '../path'
 
@@ -10,17 +10,20 @@ export abstract class BaseMigrator {
   protected targetTools: ToolKey[]
   protected options: MigrateOptions
   protected configType: ConfigType
+  protected tools: Record<ToolKey, ToolConfig>
 
   constructor(
     sourceDir: string,
     targetTools: ToolKey[],
     options: MigrateOptions,
     configType: ConfigType,
+    tools: Record<ToolKey, ToolConfig>,
   ) {
     this.sourceDir = sourceDir
     this.targetTools = targetTools
     this.options = options
     this.configType = configType
+    this.tools = tools
   }
 
   /**
@@ -40,7 +43,9 @@ export abstract class BaseMigrator {
         results.errors.push(...toolStats.errors)
       }
       catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error'
         results.error++
         results.errors.push({
           file: `Tool: ${tool}, Type: ${this.configType}`,

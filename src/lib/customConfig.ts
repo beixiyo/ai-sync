@@ -7,6 +7,7 @@ import type { SyncConfig } from './config'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import {
   INTERNAL_CONFIG,
 
@@ -29,18 +30,22 @@ export async function findConfigFile(cwd: string = process.cwd()): Promise<strin
 /**
  * 加载用户配置
  */
-export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncConfig> {
+export async function loadUserConfig(cwd: string = process.cwd(), explicitPath?: string): Promise<SyncConfig> {
   let userConfig: SyncConfig = {}
 
-  // 尝试从 ai-sync.config.js 加载配置
-  const configPath = await findConfigFile(cwd)
-  if (configPath) {
+  /** 尝试从指定路径或默认 ai-sync.config.js 加载配置 */
+  const configPath = explicitPath
+    ? resolve(process.cwd(), explicitPath)
+    : await findConfigFile(cwd)
+  if (configPath && existsSync(configPath)) {
     try {
-      let config = await import(configPath)
+      /** 使用 pathToFileURL 解决 Windows 绝对路径加载问题 (Use pathToFileURL to solve Windows absolute path loading issues) */
+      const configUrl = pathToFileURL(configPath).href
+      let config = await import(configUrl)
       config = config.default || config || {}
 
       if (typeof config === 'function') {
-        // 提供函数参数，可以细粒度地自定义 (Provide function parameters for fine-grained customization)
+        /** 提供函数参数，可以细粒度地自定义 (Provide function parameters for fine-grained customization) */
         userConfig = await config(INTERNAL_CONFIG)
       }
       else {
@@ -48,11 +53,11 @@ export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncC
       }
     }
     catch (error) {
-      console.error('加载配置文件失败 (Failed to load config file):', error)
+      console.log(`加载自定义配置文件失败 (Failed to load custom config file: ${configPath}):`, error)
     }
   }
 
-  // 尝试从 package.json 加载 ai-sync 配置
+  /** 尝试从 package.json 加载 ai-sync 配置 */
   try {
     const packageJsonPath = resolve(cwd, 'package.json')
     if (existsSync(packageJsonPath)) {
@@ -60,7 +65,7 @@ export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncC
       const packageJson = JSON.parse(packageJsonContent)
 
       if (packageJson['ai-sync']?.configDir) {
-        // 合并 package.json 中的配置到用户配置
+        /** 合并 package.json 中的配置到用户配置 */
         if (!userConfig.global) {
           userConfig.global = {}
         }

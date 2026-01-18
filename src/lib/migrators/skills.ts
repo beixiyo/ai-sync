@@ -2,10 +2,9 @@
  * Skills 迁移器
  */
 
-import type { ToolKey } from '../config'
+import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { dirname, join } from 'node:path'
-import { TOOL_CONFIGS } from '../config'
 import { copyDirectory, ensureDirectoryExists, fileExists, getMarkdownFiles, readFile, writeFile } from '../utils/file'
 import { BaseMigrator } from './base'
 
@@ -13,8 +12,8 @@ import { BaseMigrator } from './base'
  * Skills 迁移器类
  */
 export class SkillsMigrator extends BaseMigrator {
-  constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions) {
-    super(sourceDir, targetTools, options, 'skills')
+  constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions, tools: Record<ToolKey, ToolConfig>) {
+    super(sourceDir, targetTools, options, 'skills', tools)
   }
 
   /**
@@ -22,9 +21,9 @@ export class SkillsMigrator extends BaseMigrator {
    */
   protected async migrateForTool(tool: ToolKey, targetDir: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
-    const toolConfig = TOOL_CONFIGS[tool]
+    const toolConfig = this.tools[tool]
 
-    // 如果有自定义 transform 函数，使用自定义逻辑
+    /** 如果有自定义 transform 函数，使用自定义逻辑 */
     if (toolConfig?.skills?.transform) {
       await this.migrateWithTransform(targetDir, results, tool)
     }
@@ -44,7 +43,7 @@ export class SkillsMigrator extends BaseMigrator {
     results: MigrationStats,
     tool: ToolKey,
   ): Promise<void> {
-    const transform = TOOL_CONFIGS[tool]?.skills?.transform
+    const transform = this.tools[tool]?.skills?.transform
     if (!transform)
       return
 
@@ -67,7 +66,9 @@ export class SkillsMigrator extends BaseMigrator {
         results.success++
       }
       catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error'
         results.error++
         results.errors.push({ file, error: errorMessage })
       }

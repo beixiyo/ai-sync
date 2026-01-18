@@ -6,10 +6,10 @@ import { defineConfig, INTERNAL_CONFIG } from '@lib/config'
 import { loadUserConfig, mergeConfigs } from '@lib/customConfig'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
-// 模拟项目根目录
+/** 模拟项目根目录 */
 const testProjectRoot = join(process.cwd(), 'test-project')
 
-// 清理测试目录
+/** 清理测试目录 */
 async function cleanupTestDir() {
   if (existsSync(testProjectRoot)) {
     rmSync(testProjectRoot, { recursive: true, force: true })
@@ -29,7 +29,7 @@ describe('customConfig', () => {
   describe('loadUserConfig', () => {
     it('should return empty config when no config file or package.json config exists', async () => {
       const config = await loadUserConfig(testProjectRoot)
-      // 预期应该为空
+      /** 预期应该为空 */
       expect(config.tools).toBeUndefined()
       expect(config.global).toBeUndefined()
     })
@@ -75,13 +75,31 @@ module.exports = (defaultConfig) => {
       expect(config.tools?.cursor).toBeDefined()
     })
 
+    it('should load custom config from explicit path', async () => {
+      const explicitProjectRoot = join(testProjectRoot, 'explicit')
+      mkdirSync(explicitProjectRoot, { recursive: true })
+      const hiddenDir = join(explicitProjectRoot, '.hidden')
+      mkdirSync(hiddenDir, { recursive: true })
+      const configPath = join(hiddenDir, 'custom-sync.config.js')
+      const customConfig = `
+module.exports = {
+  global: {
+    defaultSourceDir: './hidden-rules'
+  }
+}
+`
+      await writeFile(configPath, customConfig, 'utf-8')
+      const config = await loadUserConfig(explicitProjectRoot, configPath)
+      expect(config.global?.defaultSourceDir).toBe('./hidden-rules')
+    })
+
     it('should load custom config from package.json', async () => {
-      // 备份原 package.json
+      /** 备份原 package.json */
       const originalPackageJsonPath = join(process.cwd(), 'package.json')
       const originalContent = await readFile(originalPackageJsonPath, 'utf-8')
       const originalPackageJson = JSON.parse(originalContent)
 
-      // 修改 package.json 添加 ai-sync 配置
+      /** 修改 package.json 添加 ai-sync 配置 */
       const modifiedPackageJson = {
         ...originalPackageJson,
         'ai-sync': {
@@ -92,13 +110,13 @@ module.exports = (defaultConfig) => {
       await writeFile(originalPackageJsonPath, JSON.stringify(modifiedPackageJson, null, 2), 'utf-8')
 
       try {
-        // 加载配置
+        /** 加载配置 */
         const config = await loadUserConfig()
-        // 验证配置加载成功
+        /** 验证配置加载成功 */
         expect(config.global?.defaultConfigDir).toBe('./custom-config')
       }
       finally {
-        // 恢复原 package.json
+        /** 恢复原 package.json */
         await writeFile(originalPackageJsonPath, JSON.stringify(originalPackageJson, null, 2), 'utf-8')
       }
     })
@@ -106,7 +124,7 @@ module.exports = (defaultConfig) => {
 
   describe('mergeConfigs', () => {
     it('should merge custom tool config with default config', () => {
-      // 创建自定义配置
+      /** 创建自定义配置 */
       const customConfig: SyncConfig = {
         tools: {
           'test-cli': {
@@ -118,25 +136,25 @@ module.exports = (defaultConfig) => {
             },
             supported: ['commands'],
           } as any,
-          // 修改现有工具配置
+          /** 修改现有工具配置 */
           'cursor': {
             name: 'Custom Cursor',
           },
         },
       }
 
-      // 合并配置
+      /** 合并配置 */
       const merged = mergeConfigs(INTERNAL_CONFIG, customConfig)
 
-      // 验证自定义工具添加成功
+      /** 验证自定义工具添加成功 */
       expect(merged.tools?.['test-cli']).toBeDefined()
       expect(merged.tools?.['test-cli']?.name).toBe('Test CLI')
       expect(merged.tools?.['test-cli']?.commands?.source).toBe('.test-cli/commands')
       expect(merged.tools?.['test-cli']?.supported).toEqual(['commands'])
 
-      // 验证现有工具配置修改成功
+      /** 验证现有工具配置修改成功 */
       expect(merged.tools?.cursor?.name).toBe('Custom Cursor')
-      // 验证现有工具其他配置保持不变
+      /** 验证现有工具其他配置保持不变 */
       expect(merged.tools?.cursor?.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
     })
 

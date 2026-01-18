@@ -14,7 +14,7 @@ import type {
 } from './types/config'
 import { DEFAULT_TOOL_CONFIGS } from './configs'
 
-// 重新导出所有类型
+/** 重新导出所有类型 */
 export * from './types/config'
 
 /**
@@ -61,9 +61,9 @@ export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
 /**
  * 获取工具选择列表
  */
-export function getToolChoiceList(): ToolChoice[] {
-  return Object.keys(TOOL_CONFIGS).map(key => ({
-    name: TOOL_CONFIGS[key as ToolKey].name,
+export function getToolChoiceList(tools: Record<ToolKey, ToolConfig> = TOOL_CONFIGS): ToolChoice[] {
+  return Object.keys(tools).map(key => ({
+    name: tools[key as ToolKey].name,
     value: key as ToolKey,
   }))
 }
@@ -81,8 +81,8 @@ export function getConfigDirChoiceList(): ConfigDirChoice[] {
 /**
  * 检查工具是否支持指定配置类型
  */
-export function isConfigTypeSupported(tool: string, configType: ConfigType): boolean {
-  const toolConfig = TOOL_CONFIGS[tool as ToolKey]
+export function isConfigTypeSupported(tool: string, configType: ConfigType, tools: Record<ToolKey, ToolConfig> = TOOL_CONFIGS): boolean {
+  const toolConfig = tools[tool as ToolKey]
   if (!toolConfig)
     return false
   return toolConfig.supported.includes(configType)

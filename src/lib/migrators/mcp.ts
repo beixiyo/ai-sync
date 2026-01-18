@@ -1,7 +1,6 @@
-import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig, ToolKey } from '../config'
+import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig, ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import chalk from 'chalk'
-import { TOOL_CONFIGS } from '../config'
 import { fileExists, readJSONFile, readTOMLFile, writeJSONFile, writeTOMLFile } from '../utils/file'
 import { BaseMigrator } from './base'
 
@@ -9,8 +8,8 @@ import { BaseMigrator } from './base'
  * MCP 迁移器类
  */
 export class MCPMigrator extends BaseMigrator {
-  constructor(sourceFile: string, targetTools: ToolKey[], options: MigrateOptions) {
-    super(sourceFile, targetTools, options, 'mcp')
+  constructor(sourceFile: string, targetTools: ToolKey[], options: MigrateOptions, tools: Record<ToolKey, ToolConfig>) {
+    super(sourceFile, targetTools, options, 'mcp', tools)
   }
 
   /**
@@ -18,8 +17,8 @@ export class MCPMigrator extends BaseMigrator {
    */
   async migrate(): Promise<MigrationStats> {
     if (!(await fileExists(this.sourceDir))) {
-      console.error(chalk.red(`✗ 源文件不存在: ${this.sourceDir}`))
-      return { success: 0, skipped: 0, error: 1, errors: [{ file: this.sourceDir, error: '源文件不存在' }] }
+      console.error(chalk.red(`✗ 源文件不存在: ${this.sourceDir} (Source file does not exist: ${this.sourceDir})`))
+      return { success: 0, skipped: 0, error: 1, errors: [{ file: this.sourceDir, error: '源文件不存在 (Source file does not exist)' }] }
     }
     return super.migrate()
   }
@@ -29,7 +28,7 @@ export class MCPMigrator extends BaseMigrator {
    */
   protected async migrateForTool(tool: ToolKey, targetPath: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
-    const toolConfig = TOOL_CONFIGS[tool]
+    const toolConfig = this.tools[tool]
 
     if (await fileExists(targetPath) && !this.options.autoOverwrite && tool !== 'codex') {
       results.skipped++
@@ -70,13 +69,15 @@ export class MCPMigrator extends BaseMigrator {
         await writeJSONFile(targetPath, convertedContent)
         results.success++
       }
-      console.log(chalk.green(`✓ MCP 迁移完成: ${tool}`))
+      console.log(chalk.green(`✓ MCP 迁移完成: ${tool} (MCP migration complete: ${tool})`))
     }
     catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '迁移失败'
+      const errorMessage = error instanceof Error
+        ? error.message
+        : '迁移失败 (Migration failed)'
       results.error++
       results.errors.push({ file: targetPath, error: errorMessage })
-      console.error(chalk.red(`✗ MCP 迁移失败 (${tool}): ${errorMessage}`))
+      console.error(chalk.red(`✗ MCP 迁移失败 (${tool}): ${errorMessage} (MCP migration failed (${tool}): ${errorMessage})`))
     }
 
     return results

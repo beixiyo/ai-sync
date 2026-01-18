@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "IDE Rules 迁移脚本",
   "ai-sync": {
-    "configDir": "C:\\Code\\ai-sync"
+    "configDir": "C:\\Code\\ai-sync\\test-data"
   },
   "type": "module",
   "main": "dist/index.cjs",
