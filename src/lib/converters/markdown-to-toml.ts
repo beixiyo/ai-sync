@@ -2,10 +2,10 @@
  * Markdown 转 TOML 转换器
  */
 
-import YAML from 'yaml'
+import { readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { stringify as tomlStringify } from '@iarna/toml'
-import { readFile, writeFile } from 'fs/promises'
-import { join, dirname } from 'path'
+import YAML from 'yaml'
 import { ensureDirectoryExists } from '../utils/file'
 
 /**
@@ -22,7 +22,8 @@ export async function convertMarkdownToTOML(sourcePath: string, targetPath: stri
     try {
       frontmatter = YAML.parse(frontmatterMatch[1]) as Frontmatter
       prompt = content.replace(/^---[\s\S]*?---\n/, '')
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`Frontmatter 解析失败: ${sourcePath}`)
     }
   }
@@ -73,7 +74,7 @@ function removeUnsupportedConfig(prompt: string): string {
  */
 function generateTOML(description: string, prompt: string): string {
   const data: Record<string, any> = {
-    prompt: prompt.trim()
+    prompt: prompt.trim(),
   }
   if (description) {
     data.description = description

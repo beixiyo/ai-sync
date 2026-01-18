@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
+import type { SyncConfig } from '@lib/config'
+import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { defineConfig, INTERNAL_CONFIG } from '@lib/config'
 import { loadUserConfig, mergeConfigs } from '@lib/customConfig'
-import { TOOL_CONFIGS, INTERNAL_CONFIG, defineConfig, type SyncConfig } from '@lib/config'
-import { existsSync, mkdirSync, rmSync } from 'fs'
-import { join } from 'path'
-import { writeFile, readFile } from 'fs/promises'
-
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 // 模拟项目根目录
 const testProjectRoot = join(process.cwd(), 'test-project')
@@ -85,8 +85,8 @@ module.exports = (defaultConfig) => {
       const modifiedPackageJson = {
         ...originalPackageJson,
         'ai-sync': {
-          configDir: './custom-config'
-        }
+          configDir: './custom-config',
+        },
       }
 
       await writeFile(originalPackageJsonPath, JSON.stringify(modifiedPackageJson, null, 2), 'utf-8')
@@ -96,7 +96,8 @@ module.exports = (defaultConfig) => {
         const config = await loadUserConfig()
         // 验证配置加载成功
         expect(config.global?.defaultConfigDir).toBe('./custom-config')
-      } finally {
+      }
+      finally {
         // 恢复原 package.json
         await writeFile(originalPackageJsonPath, JSON.stringify(originalPackageJson, null, 2), 'utf-8')
       }
@@ -113,15 +114,15 @@ module.exports = (defaultConfig) => {
             commands: {
               source: '.test-cli/commands',
               format: 'markdown',
-              target: '~/.test-cli/commands'
+              target: '~/.test-cli/commands',
             },
-            supported: ['commands']
+            supported: ['commands'],
           } as any,
           // 修改现有工具配置
-          cursor: {
-            name: 'Custom Cursor'
-          }
-        }
+          'cursor': {
+            name: 'Custom Cursor',
+          },
+        },
       }
 
       // 合并配置
@@ -142,8 +143,8 @@ module.exports = (defaultConfig) => {
     it('should merge global config', () => {
       const customConfig: SyncConfig = {
         global: {
-          defaultSourceDir: './custom-rules'
-        }
+          defaultSourceDir: './custom-rules',
+        },
       }
 
       const merged = mergeConfigs(INTERNAL_CONFIG, customConfig)
@@ -157,8 +158,8 @@ module.exports = (defaultConfig) => {
     it('should return the same config object', () => {
       const config: SyncConfig = {
         global: {
-          defaultSourceDir: './my-rules'
-        }
+          defaultSourceDir: './my-rules',
+        },
       }
 
       const definedConfig = defineConfig(config)
@@ -178,15 +179,15 @@ module.exports = (defaultConfig) => {
         tools: {
           cursor: {
             rules: {
-              transform: (content: string) => content + '\n# Custom Rule Suffix'
-            }
-          }
-        }
+              transform: (content: string) => `${content}\n# Custom Rule Suffix`,
+            },
+          },
+        },
       }
-      
+
       const merged = mergeConfigs(INTERNAL_CONFIG, config)
       expect(merged.tools?.cursor?.rules?.transform).toBeDefined()
-      
+
       const transformed = await (merged.tools?.cursor?.rules?.transform as any)('Original Content', 'test.md')
       expect(transformed).toBe('Original Content\n# Custom Rule Suffix')
     })
@@ -199,25 +200,25 @@ module.exports = (defaultConfig) => {
             commands: {
               source: '.test-cli/commands',
               format: 'markdown',
-              target: '~/.test-cli/commands'
+              target: '~/.test-cli/commands',
             },
             skills: {
               source: '.test-cli/skills',
-              target: '~/.test-cli/skills'
+              target: '~/.test-cli/skills',
             },
             rules: {
               source: '.test-cli/rules',
               format: 'markdown',
               target: '~/.test-cli/RULES.md',
-              merge: true
+              merge: true,
             },
             mcp: {
               source: '.test-cli.json',
-              target: '~/.test-cli/settings.json'
+              target: '~/.test-cli/settings.json',
             },
-            supported: ['commands', 'skills', 'rules', 'mcp']
-          }
-        }
+            supported: ['commands', 'skills', 'rules', 'mcp'],
+          },
+        },
       }) as SyncConfig
 
       expect(customConfig.tools?.['test-cli']).toBeDefined()

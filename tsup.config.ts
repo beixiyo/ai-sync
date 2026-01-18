@@ -15,5 +15,5 @@ export default defineConfig({
   sourcemap: false,
   dts: true,
   splitting: false,
-  external: Object.keys(pkg.devDependencies || {})
+  external: Object.keys(pkg.devDependencies || {}),
 })

@@ -5,21 +5,21 @@ export const cursorConfig: ToolConfig = {
   commands: {
     source: '.claude/commands',
     format: 'markdown',
-    target: '~/.cursor/commands'
+    target: '~/.cursor/commands',
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.cursor/skills'
+    target: '~/.cursor/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'mdc',
-    target: '~/.cursor/rules'
+    target: '~/.cursor/rules',
   },
   mcp: {
     source: '.claude.json',
     target: '~/.cursor/mcp.json',
-    convert: true
+    convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

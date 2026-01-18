@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
+import type { ToolKey } from '@lib/config'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { TOOL_CONFIGS } from '@lib/config'
 import { CommandsMigrator } from '@lib/migrators/commands'
-import { SkillsMigrator } from '@lib/migrators/skills'
-import { RulesMigrator } from '@lib/migrators/rules'
 import { MCPMigrator } from '@lib/migrators/mcp'
+import { RulesMigrator } from '@lib/migrators/rules'
+import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, fileExists, removeDirectory } from '@lib/utils/file'
-import { join } from 'path'
-import { TOOL_CONFIGS, type ToolKey } from '@lib/config'
-import { readFile } from 'fs/promises'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 // 测试配置
 const testSourceDir = join(process.cwd(), 'test-data')
@@ -16,7 +17,7 @@ const testTargetDir = join(process.cwd(), 'test-output')
 const testOptions = {
   isProject: true,
   projectDir: testTargetDir,
-  autoOverwrite: true
+  autoOverwrite: true,
 }
 
 // 所有支持的工具
@@ -29,23 +30,23 @@ const testCustomConfig = {
     source: '.claude/commands',
     format: 'markdown',
     target: '~/.test-cli/commands',
-    convert: true
+    convert: true,
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.test-cli/skills'
+    target: '~/.test-cli/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.test-cli/RULES.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
-    target: '~/.test-cli/mcp.json'
+    target: '~/.test-cli/mcp.json',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }
 
 // 所有测试工具（包括自定义工具）
@@ -69,7 +70,7 @@ async function setupTestData() {
   const sourceClaudeJson = join(testSourceDir, '.claude.json')
   const targetClaudeJson = join(testTargetDir, '.claude.json')
   if (await fileExists(sourceClaudeJson)) {
-    const fs = await import('fs/promises')
+    const fs = await import('node:fs/promises')
     await fs.copyFile(sourceClaudeJson, targetClaudeJson)
   }
 }
@@ -87,8 +88,8 @@ describe('集成测试', () => {
     await setupTestData()
   })
 
-  describe('Claude → 其他工具转换', () => {
-    describe('Commands 转换', () => {
+  describe('claude → 其他工具转换', () => {
+    describe('commands 转换', () => {
       it('应该成功将 Claude Commands 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.claude', 'commands')
         const migrator = new CommandsMigrator(sourceDir, allToolsWithCustom, testOptions)
@@ -140,7 +141,7 @@ describe('集成测试', () => {
       })
     })
 
-    describe('Skills 转换', () => {
+    describe('skills 转换', () => {
       it('应该成功将 Claude Skills 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.claude', 'skills')
         const migrator = new SkillsMigrator(sourceDir, allToolsWithCustom, testOptions)
@@ -155,11 +156,14 @@ describe('集成测试', () => {
           let skillDir: string
           if (tool === 'opencode') {
             skillDir = join(testTargetDir, `.${tool}`, 'skill')
-          } else if (tool === 'codex') {
+          }
+          else if (tool === 'codex') {
             skillDir = join(testTargetDir, `.${tool}`, 'skills')
-          } else if (tool === 'test-cli') {
+          }
+          else if (tool === 'test-cli') {
             skillDir = join(testTargetDir, `.${tool}`, 'skills')
-          } else {
+          }
+          else {
             skillDir = join(testTargetDir, `.${tool}`, 'skills')
           }
           const skillPath = join(skillDir, 'test-skill.md')
@@ -168,7 +172,7 @@ describe('集成测试', () => {
       })
     })
 
-    describe('Rules 转换', () => {
+    describe('rules 转换', () => {
       it('应该成功将 Claude Rules 转换到所有工具（包括自定义工具）', async () => {
         const sourceDir = join(testTargetDir, '.cursor', 'rules')
         const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions)
@@ -195,7 +199,8 @@ describe('集成测试', () => {
               expect(content).toContain('测试规则 1')
               expect(content).toContain('测试规则 2')
             }
-          } else {
+          }
+          else {
             // 对于不需要合并的工具，应该是目录
             const rulesPath = join(testTargetDir, `.${tool}`, 'rules')
             expect(await fileExists(rulesPath)).toBe(true)
@@ -206,7 +211,7 @@ describe('集成测试', () => {
       })
     })
 
-    describe('MCP 转换', () => {
+    describe('mCP 转换', () => {
       it('应该成功将 Claude MCP 配置转换到所有工具（包括自定义工具）', async () => {
         const sourceFile = join(testTargetDir, '.claude.json')
         const migrator = new MCPMigrator(sourceFile, allToolsWithCustom, testOptions)
@@ -250,7 +255,7 @@ describe('集成测试', () => {
     })
   })
 
-  describe('Cursor Rules → 其他工具转换', () => {
+  describe('cursor Rules → 其他工具转换', () => {
     it('应该成功将 Cursor Rules 转换到所有工具（包括自定义工具）', async () => {
       const sourceDir = join(testTargetDir, '.cursor', 'rules')
       const migrator = new RulesMigrator(sourceDir, allToolsWithCustom, testOptions)
@@ -278,7 +283,8 @@ describe('集成测试', () => {
           expect(content).toContain('测试规则 1')
           expect(content).toContain('测试规则 2')
           expect(content).not.toContain('---description:') // 确保没有元数据
-        } else {
+        }
+        else {
           // 对于不需要合并的工具，应该是目录
           const rulesPath = join(testTargetDir, `.${tool}`, 'rules')
           expect(await fileExists(rulesPath)).toBe(true)
@@ -289,7 +295,7 @@ describe('集成测试', () => {
     })
   })
 
-  describe('Claude Rules → Cursor Rules 转换', () => {
+  describe('claude Rules → Cursor Rules 转换', () => {
     it('应该成功将 Claude Rules 转换为 Cursor Rules (MDC 格式)', async () => {
       const claudeMdPath = join(testSourceDir, '.claude', 'CLAUDE.md')
       expect(await fileExists(claudeMdPath)).toBe(true)

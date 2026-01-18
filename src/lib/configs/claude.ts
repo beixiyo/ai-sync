@@ -5,21 +5,21 @@ export const claudeConfig: ToolConfig = {
   commands: {
     source: '.claude/commands',
     format: 'markdown',
-    target: '~/.claude/commands'
+    target: '~/.claude/commands',
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.claude/skills'
+    target: '~/.claude/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.claude/CLAUDE.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
-    target: '~/.claude/.claude.json'
+    target: '~/.claude/.claude.json',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

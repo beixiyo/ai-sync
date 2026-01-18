@@ -5,22 +5,22 @@ export const opencodeConfig: ToolConfig = {
   commands: {
     source: '.claude/commands',
     format: 'markdown',
-    target: '~/.config/opencode/command'
+    target: '~/.config/opencode/command',
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.config/opencode/skill'
+    target: '~/.config/opencode/skill',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.config/opencode/AGENTS.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
     target: '~/.config/opencode/opencode.jsonc',
-    convert: true
+    convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

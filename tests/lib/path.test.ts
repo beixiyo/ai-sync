@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
+import { join } from 'node:path'
 import { expandHome, getToolPath, normalizePath } from '@lib/path'
-import { join } from 'path'
+import { describe, expect, it, vi } from 'vitest'
 
 // Mock os module
 vi.mock('os', () => ({

@@ -1,8 +1,6 @@
-import { TOOL_CONFIGS } from '../config'
-import { getToolPath } from '../path'
-import { Logger } from '../utils/logger'
-import type { ToolKey, ConfigType } from '../config'
+import type { ConfigType, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import { getToolPath } from '../path'
 
 /**
  * 迁移器抽象基类
@@ -17,7 +15,7 @@ export abstract class BaseMigrator {
     sourceDir: string,
     targetTools: ToolKey[],
     options: MigrateOptions,
-    configType: ConfigType
+    configType: ConfigType,
   ) {
     this.sourceDir = sourceDir
     this.targetTools = targetTools
@@ -35,17 +33,18 @@ export abstract class BaseMigrator {
       try {
         const targetDir = this.getTargetDir(tool)
         const toolStats = await this.migrateForTool(tool, targetDir)
-        
+
         results.success += toolStats.success
         results.skipped += toolStats.skipped
         results.error += toolStats.error
         results.errors.push(...toolStats.errors)
-      } catch (error) {
+      }
+      catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         results.error++
-        results.errors.push({ 
-          file: `Tool: ${tool}, Type: ${this.configType}`, 
-          error: errorMessage 
+        results.errors.push({
+          file: `Tool: ${tool}, Type: ${this.configType}`,
+          error: errorMessage,
         })
       }
     }
@@ -66,7 +65,7 @@ export abstract class BaseMigrator {
       tool,
       this.configType,
       this.options.isProject,
-      this.options.projectDir
+      this.options.projectDir,
     )
   }
 

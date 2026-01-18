@@ -5,22 +5,22 @@ export const codexConfig: ToolConfig = {
   commands: {
     source: '.claude/commands',
     format: 'markdown',
-    target: '~/.codex/prompts'
+    target: '~/.codex/prompts',
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.codex/skills'
+    target: '~/.codex/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.codex/AGENTS.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
     target: '~/.codex/config.toml',
-    convert: true
+    convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

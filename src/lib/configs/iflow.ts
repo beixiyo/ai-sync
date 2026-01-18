@@ -6,22 +6,22 @@ export const iflowConfig: ToolConfig = {
     source: '.claude/commands',
     format: 'toml',
     target: '~/.iflow/commands',
-    convert: true
+    convert: true,
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.iflow/skills'
+    target: '~/.iflow/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.iflow/IFLOW.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
     target: '~/.iflow/settings.json',
-    convert: true
+    convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

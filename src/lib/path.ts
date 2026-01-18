@@ -2,10 +2,10 @@
  * 路径工具函数
  */
 
-import { homedir } from 'os'
-import { join, resolve } from 'path'
-import { access, stat } from 'fs/promises'
-import type { ToolKey, ConfigType } from './config'
+import type { ConfigType, ToolKey } from './config'
+import { stat } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { join, resolve } from 'node:path'
 
 /**
  * 展开家目录路径
@@ -24,39 +24,39 @@ export function getToolPath(
   tool: ToolKey,
   configType: ConfigType,
   isProject: boolean = false,
-  projectDir: string = ''
+  projectDir: string = '',
 ): string {
-  const paths: Record<ToolKey, { global: string; project: string }> = {
+  const paths: Record<ToolKey, { global: string, project: string }> = {
     cursor: {
       global: '~/.cursor',
-      project: '.cursor'
+      project: '.cursor',
     },
     claude: {
       global: '~/.claude',
-      project: '.claude'
+      project: '.claude',
     },
     opencode: {
       global: '~/.config/opencode',
-      project: '.opencode'
+      project: '.opencode',
     },
     gemini: {
       global: '~/.gemini',
-      project: '.gemini'
+      project: '.gemini',
     },
     iflow: {
       global: '~/.iflow',
-      project: '.iflow'
+      project: '.iflow',
     },
     codex: {
       global: '~/.codex',
-      project: '.codex'
-    }
+      project: '.codex',
+    },
   }
 
   // 为自定义工具提供默认路径
   const toolPath = paths[tool as string] || {
     global: `~/.${tool}`,
-    project: `.${tool}`
+    project: `.${tool}`,
   }
 
   const basePath = isProject
@@ -65,15 +65,20 @@ export function getToolPath(
 
   // 为 OpenCode 特殊处理路径，保持 command/skill 的单数形式
   if (tool === 'opencode') {
-    if (configType === 'commands') return join(basePath, 'command')
-    if (configType === 'skills') return join(basePath, 'skill')
-    if (configType === 'mcp') return join(basePath, 'opencode.jsonc')
+    if (configType === 'commands')
+      return join(basePath, 'command')
+    if (configType === 'skills')
+      return join(basePath, 'skill')
+    if (configType === 'mcp')
+      return join(basePath, 'opencode.jsonc')
   }
 
   // 为 Codex 特殊处理路径
   if (tool === 'codex') {
-    if (configType === 'commands') return join(basePath, 'prompts')
-    if (configType === 'mcp') return join(basePath, 'config.toml')
+    if (configType === 'commands')
+      return join(basePath, 'prompts')
+    if (configType === 'mcp')
+      return join(basePath, 'config.toml')
   }
 
   // 为 MCP 配置特殊处理路径
@@ -107,7 +112,7 @@ export function normalizePath(filepath: string): string {
  */
 export async function resolveSourceDir(
   providedSourceDir: string | undefined,
-  defaultConfigDir: string
+  defaultConfigDir: string,
 ): Promise<string> {
   const sourceDir = providedSourceDir || defaultConfigDir
 
@@ -131,7 +136,8 @@ async function fileExists(filepath: string): Promise<boolean> {
   try {
     const stats = await stat(filepath)
     return stats.isFile()
-  } catch {
+  }
+  catch {
     return false
   }
 }
@@ -143,7 +149,8 @@ async function dirExists(dirpath: string): Promise<boolean> {
   try {
     const stats = await stat(dirpath)
     return stats.isDirectory()
-  } catch {
+  }
+  catch {
     return false
   }
 }

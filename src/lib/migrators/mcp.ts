@@ -1,9 +1,9 @@
-import { BaseMigrator } from './base'
-import { readJSONFile, writeJSONFile, fileExists, readTOMLFile, writeTOMLFile } from '../utils/file'
-import { TOOL_CONFIGS } from '../config'
-import chalk from 'chalk'
-import type { ToolKey, MCPServerConfig, LocalMCPConfig, RemoteMCPConfig } from '../config'
+import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import chalk from 'chalk'
+import { TOOL_CONFIGS } from '../config'
+import { fileExists, readJSONFile, readTOMLFile, writeJSONFile, writeTOMLFile } from '../utils/file'
+import { BaseMigrator } from './base'
 
 /**
  * MCP 迁移器类
@@ -44,30 +44,35 @@ export class MCPMigrator extends BaseMigrator {
         const transformed = await toolConfig.mcp.transform(sourceContent)
         if (isToml) {
           await writeTOMLFile(targetPath, transformed)
-        } else {
+        }
+        else {
           await writeJSONFile(targetPath, transformed)
         }
         results.success++
-      } else if (tool === 'claude') {
+      }
+      else if (tool === 'claude') {
         await writeJSONFile(targetPath, sourceContent)
         results.success++
-      } else if (tool === 'codex') {
+      }
+      else if (tool === 'codex') {
         // Codex 特殊处理：更新 config.toml 中的 mcp_servers 节点
         let config: any = {}
         if (await fileExists(targetPath)) {
           config = await readTOMLFile<any>(targetPath)
         }
-        
+
         config.mcp_servers = this.convertMCPToCodexFormat(sourceContent.mcpServers || {})
         await writeTOMLFile(targetPath, config)
         results.success++
-      } else {
+      }
+      else {
         const convertedContent = this.convertMCPConfig(sourceContent, tool)
         await writeJSONFile(targetPath, convertedContent)
         results.success++
       }
       console.log(chalk.green(`✓ MCP 迁移完成: ${tool}`))
-    } catch (error) {
+    }
+    catch (error) {
       const errorMessage = error instanceof Error ? error.message : '迁移失败'
       results.error++
       results.errors.push({ file: targetPath, error: errorMessage })
@@ -118,16 +123,17 @@ export class MCPMigrator extends BaseMigrator {
         const localServer = server as LocalMCPConfig
         const config: any = {
           command: localServer.command,
-          args: localServer.args || []
+          args: localServer.args || [],
         }
         if (localServer.env && Object.keys(localServer.env).length > 0) {
           config.env = localServer.env
         }
         codexMcp[name] = config
-      } else if (this.isRemoteMCPConfig(server)) {
+      }
+      else if (this.isRemoteMCPConfig(server)) {
         const remoteServer = server as RemoteMCPConfig
         const config: any = {
-          url: remoteServer.url || remoteServer.httpUrl
+          url: remoteServer.url || remoteServer.httpUrl,
         }
         if (remoteServer.headers && Object.keys(remoteServer.headers).length > 0) {
           config.http_headers = remoteServer.headers
@@ -147,19 +153,21 @@ export class MCPMigrator extends BaseMigrator {
         const localServer = server as LocalMCPConfig
         opencodeMcp[name] = {
           type: 'local',
-          command: Array.isArray(localServer.command) 
-            ? localServer.command 
+          command: Array.isArray(localServer.command)
+            ? localServer.command
             : [localServer.command, ...(localServer.args || [])],
-          enabled: true
+          enabled: true,
         }
-      } else if (this.isRemoteMCPConfig(server)) {
+      }
+      else if (this.isRemoteMCPConfig(server)) {
         const remoteServer = server as RemoteMCPConfig
         opencodeMcp[name] = {
           type: 'remote',
           url: remoteServer.url || remoteServer.httpUrl,
-          enabled: true
+          enabled: true,
         }
-      } else {
+      }
+      else {
         opencodeMcp[name] = { ...(server as object) }
       }
     })
@@ -178,13 +186,15 @@ export class MCPMigrator extends BaseMigrator {
           geminiMcp[name] = {
             ...(server as object),
             httpUrl: url,
-            type: 'streamable-http'
+            type: 'streamable-http',
           }
           delete (geminiMcp[name] as any).url
-        } else {
+        }
+        else {
           geminiMcp[name] = { ...(server as object) }
         }
-      } else {
+      }
+      else {
         geminiMcp[name] = { ...(server as object) }
       }
     })

@@ -2,9 +2,9 @@
  * Rules 合并器 - 将多个 MDC 规则文件合并为一个 Markdown 文件
  */
 
-import { readFile, writeFile, readdir } from 'fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import YAML from 'yaml'
-import { join, dirname } from 'path'
 import { ensureDirectoryExists } from '../utils/file'
 
 /**
@@ -36,7 +36,8 @@ export async function mergeRules(sourceDir: string, targetFile: string): Promise
       try {
         frontmatter = YAML.parse(frontmatterMatch[1]) as Frontmatter
         body = fileContent.substring(frontmatterMatch[0].length)
-      } catch (e) {
+      }
+      catch (e) {
         // 如果解析失败，尝试仅剥离标记线
       }
     }

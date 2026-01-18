@@ -1,5 +1,5 @@
-import { readFile, writeFile } from 'fs/promises'
-import { dirname } from 'path'
+import { readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { ensureDirectoryExists } from '../utils/file'
 
 /**
@@ -35,7 +35,8 @@ alwaysApply: true
     // 写入转换后的内容
     await writeFile(targetPath, mdcContent, 'utf-8')
     return true
-  } catch (error) {
+  }
+  catch (error) {
     console.error(`转换文件失败: ${sourcePath} → ${targetPath}`, error)
     return false
   }

@@ -3,18 +3,15 @@
  * 允许用户通过 ai-sync.config.js 文件自定义迁移配置
  */
 
-import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
-import { resolve } from 'path'
+import type { SyncConfig } from './config'
+import { existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import {
-  type ToolKey,
-  type ToolConfig,
-  TOOL_CONFIGS,
-  defineConfig,
-  type SyncConfig,
-  INTERNAL_CONFIG
+  INTERNAL_CONFIG,
+
 } from './config'
-import { deepMerge, isObj } from './utils/deepMerge'
+import { deepMerge } from './utils/deepMerge'
 
 /**
  * 查找配置文件
@@ -45,10 +42,12 @@ export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncC
       if (typeof config === 'function') {
         // 提供函数参数，可以细粒度地自定义 (Provide function parameters for fine-grained customization)
         userConfig = await config(INTERNAL_CONFIG)
-      } else {
+      }
+      else {
         userConfig = config
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('加载配置文件失败 (Failed to load config file):', error)
     }
   }
@@ -68,7 +67,8 @@ export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncC
         userConfig.global.defaultConfigDir = packageJson['ai-sync'].configDir
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载 package.json 配置失败 (Failed to load package.json config):', error)
   }
 
@@ -81,4 +81,3 @@ export async function loadUserConfig(cwd: string = process.cwd()): Promise<SyncC
 export function mergeConfigs(defaultConfig: SyncConfig, userConfig: SyncConfig): SyncConfig {
   return deepMerge(defaultConfig, userConfig)
 }
-

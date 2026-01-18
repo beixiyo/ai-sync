@@ -1,17 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { join } from 'path'
-import { readFile, writeFile, mkdir, access, stat, readdir, copyFile, chmod } from 'fs/promises'
+import { access, chmod, copyFile, mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import {
+  copyDirectory,
+  copyFileSafe,
+  directoryExists,
   ensureDirectoryExists,
   fileExists,
-  directoryExists,
-  copyFileSafe,
-  copyDirectory,
   getMarkdownFiles,
   readJSONFile,
-  writeJSONFile,
   setExecutablePermission,
+  writeJSONFile,
 } from '@utils/file'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock fs/promises
 vi.mock('fs/promises', () => ({
@@ -143,7 +142,7 @@ describe('file utils', () => {
         success: 0,
         skipped: 0,
         error: 1,
-        errors: [{ file: '/source/dir', error: 'Permission denied' }]
+        errors: [{ file: '/source/dir', error: 'Permission denied' }],
       })
     })
 
@@ -181,7 +180,7 @@ describe('file utils', () => {
         success: 1,
         skipped: 0,
         error: 1,
-        errors: [{ file: 'file2.mdc', error: 'Copy failed' }]
+        errors: [{ file: 'file2.mdc', error: 'Copy failed' }],
       })
     })
   })
@@ -308,7 +307,7 @@ describe('file utils', () => {
       expect(writeFile).toHaveBeenCalledWith(
         '/test/file.json',
         JSON.stringify(data, null, 2),
-        'utf-8'
+        'utf-8',
       )
     })
   })

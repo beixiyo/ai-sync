@@ -2,9 +2,9 @@
  * 日志工具类 (Logger Utility Class)
  */
 
-import ora from 'ora'
-import chalk from 'chalk'
 import type { Ora } from 'ora'
+import chalk from 'chalk'
+import ora from 'ora'
 
 /**
  * 日志工具类 (Logger Utility Class)

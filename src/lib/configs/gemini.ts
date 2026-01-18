@@ -6,22 +6,22 @@ export const geminiConfig: ToolConfig = {
     source: '.claude/commands',
     format: 'toml',
     target: '~/.gemini/commands',
-    convert: true
+    convert: true,
   },
   skills: {
     source: '.claude/skills',
-    target: '~/.gemini/skills'
+    target: '~/.gemini/skills',
   },
   rules: {
     source: '.cursor/rules',
     format: 'markdown',
     target: '~/.gemini/GEMINI.md',
-    merge: true
+    merge: true,
   },
   mcp: {
     source: '.claude.json',
     target: '~/.gemini/settings.json',
-    convert: true
+    convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp']
+  supported: ['commands', 'skills', 'rules', 'mcp'],
 }

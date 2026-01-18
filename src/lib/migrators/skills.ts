@@ -2,12 +2,12 @@
  * Skills 迁移器
  */
 
-import { BaseMigrator } from './base'
-import { copyDirectory, getMarkdownFiles, fileExists, ensureDirectoryExists, readFile, writeFile } from '../utils/file'
-import { TOOL_CONFIGS } from '../config'
-import { join, dirname } from 'path'
 import type { ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import { dirname, join } from 'node:path'
+import { TOOL_CONFIGS } from '../config'
+import { copyDirectory, ensureDirectoryExists, fileExists, getMarkdownFiles, readFile, writeFile } from '../utils/file'
+import { BaseMigrator } from './base'
 
 /**
  * Skills 迁移器类
@@ -27,7 +27,8 @@ export class SkillsMigrator extends BaseMigrator {
     // 如果有自定义 transform 函数，使用自定义逻辑
     if (toolConfig?.skills?.transform) {
       await this.migrateWithTransform(targetDir, results, tool)
-    } else {
+    }
+    else {
       const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
       this.sumStats(results, stats)
     }
@@ -41,10 +42,11 @@ export class SkillsMigrator extends BaseMigrator {
   private async migrateWithTransform(
     targetDir: string,
     results: MigrationStats,
-    tool: ToolKey
+    tool: ToolKey,
   ): Promise<void> {
     const transform = TOOL_CONFIGS[tool]?.skills?.transform
-    if (!transform) return
+    if (!transform)
+      return
 
     const files = await getMarkdownFiles(this.sourceDir)
 
@@ -63,7 +65,8 @@ export class SkillsMigrator extends BaseMigrator {
         await ensureDirectoryExists(dirname(targetPath))
         await writeFile(targetPath, transformed, 'utf-8')
         results.success++
-      } catch (error) {
+      }
+      catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         results.error++
         results.errors.push({ file, error: errorMessage })

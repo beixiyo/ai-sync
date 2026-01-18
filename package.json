@@ -28,6 +28,7 @@
     "build": "tsup",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint . --fix --quiet",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
@@ -51,6 +52,9 @@
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "eslint": "^9.37.0",
+    "@antfu/eslint-config": "^5.4.1",
+    "@jl-org/eslint-plugins": "^1.0.0"
   }
 }

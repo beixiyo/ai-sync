@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
 import {
-  getToolChoiceList,
   getConfigDirChoiceList,
+  getToolChoiceList,
   isConfigTypeSupported,
   TOOL_CONFIGS,
 } from '@lib/config'
+import { describe, expect, it } from 'vitest'
 
 describe('config utils', () => {
   describe('getToolChoiceList', () => {
@@ -20,7 +20,7 @@ describe('config utils', () => {
           { name: 'Gemini CLI', value: 'gemini' },
           { name: 'IFlow CLI', value: 'iflow' },
           { name: 'Codex', value: 'codex' },
-        ])
+        ]),
       )
     })
   })
@@ -43,8 +43,6 @@ describe('config utils', () => {
       expect(result).toBe(true)
     })
 
-
-
     it('should return true for all tools for skills', () => {
       const tools = ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex']
       tools.forEach((tool) => {
@@ -58,7 +56,7 @@ describe('config utils', () => {
     })
   })
 
-  describe('TOOL_CONFIGS', () => {
+  describe('tOOL_CONFIGS', () => {
     it('should have all required properties for cursor', () => {
       const config = TOOL_CONFIGS.cursor
 

@@ -2,11 +2,12 @@
  * 文件工具函数
  */
 
-import { readFile, writeFile, mkdir, readdir, stat, copyFile, access, constants, chmod, rm } from 'fs/promises'
-export { readFile, writeFile }
-import { join, dirname } from 'path'
 import type { MigrationError } from './logger'
+import { access, chmod, constants, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import TOML from '@iarna/toml'
+
+export { readFile, writeFile }
 
 /**
  * 确保目录存在
@@ -14,7 +15,8 @@ import TOML from '@iarna/toml'
 export async function ensureDirectoryExists(dirPath: string): Promise<void> {
   try {
     await mkdir(dirPath, { recursive: true })
-  } catch (error) {
+  }
+  catch (error) {
     if (error instanceof Error && 'code' in error && error.code !== 'EEXIST') {
       throw error
     }
@@ -28,7 +30,8 @@ export async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath, constants.F_OK)
     return true
-  } catch {
+  }
+  catch {
     return false
   }
 }
@@ -40,7 +43,8 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
   try {
     const stats = await stat(dirPath)
     return stats.isDirectory()
-  } catch {
+  }
+  catch {
     return false
   }
 }
@@ -51,7 +55,7 @@ export async function directoryExists(dirPath: string): Promise<boolean> {
 export async function copyFileSafe(
   sourcePath: string,
   targetPath: string,
-  autoOverwrite: boolean = false
+  autoOverwrite: boolean = false,
 ): Promise<CopyResult> {
   if (await fileExists(targetPath) && !autoOverwrite) {
     return { success: false, skipped: true, error: null }
@@ -61,7 +65,8 @@ export async function copyFileSafe(
     await ensureDirectoryExists(dirname(targetPath))
     await copyFile(sourcePath, targetPath)
     return { success: true, skipped: false, error: null }
-  } catch (error) {
+  }
+  catch (error) {
     return { success: false, skipped: false, error: error instanceof Error ? error : new Error(String(error)) }
   }
 }
@@ -72,7 +77,7 @@ export async function copyFileSafe(
 export async function copyDirectory(
   sourceDir: string,
   targetDir: string,
-  autoOverwrite: boolean = false
+  autoOverwrite: boolean = false,
 ): Promise<CopyDirectoryResults> {
   const results: CopyDirectoryResults = { success: 0, skipped: 0, error: 0, errors: [] }
 
@@ -89,19 +94,23 @@ export async function copyDirectory(
         results.skipped += subdirResults.skipped
         results.error += subdirResults.error
         results.errors.push(...subdirResults.errors)
-      } else if (entry.isFile()) {
+      }
+      else if (entry.isFile()) {
         const result = await copyFileSafe(sourcePath, targetPath, autoOverwrite)
         if (result.success) {
           results.success++
-        } else if (result.skipped) {
+        }
+        else if (result.skipped) {
           results.skipped++
-        } else {
+        }
+        else {
           results.error++
           results.errors.push({ file: entry.name, error: result.error?.message || 'Unknown error' })
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     results.error++
     results.errors.push({ file: sourceDir, error: error instanceof Error ? error.message : 'Unknown error' })
   }
@@ -122,7 +131,8 @@ export async function getMarkdownFiles(dirPath: string): Promise<string[]> {
         files.push(entry.name)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error(`读取目录失败: ${dirPath}`, error instanceof Error ? error.message : 'Unknown error')
   }
 
@@ -189,7 +199,8 @@ export interface CopyDirectoryResults {
 export async function removeDirectory(dirPath: string): Promise<void> {
   try {
     await rm(dirPath, { recursive: true, force: true })
-  } catch (error) {
+  }
+  catch (error) {
     if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
       throw error
     }

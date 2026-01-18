@@ -5,22 +5,22 @@
  * 支持将 Claude/Cursor 的配置迁移到其他 AI 工具
  */
 
-import { parseArgs } from 'util'
-import inquirer from 'inquirer'
-import chalk from 'chalk'
-import { resolve } from 'path'
-import { getRuleSourcePath, expandHome, resolveSourceDir } from './lib/path'
-import { CommandsMigrator } from './lib/migrators/commands'
-import { SkillsMigrator } from './lib/migrators/skills'
-import { RulesMigrator } from './lib/migrators/rules'
-import { MCPMigrator } from './lib/migrators/mcp'
-import { getToolChoiceList, isConfigTypeSupported, TOOL_CONFIGS, INTERNAL_CONFIG } from './lib/config'
-import { loadUserConfig, mergeConfigs } from './lib/customConfig'
-import { Logger } from './lib/utils/logger'
 import type { ConfigType, ToolKey } from './lib/config'
+import type { BaseMigrator } from './lib/migrators/base'
 import type { MigrateOptions } from './lib/migrators/types'
 import type { MigrationResults } from './lib/utils/logger'
-import type { BaseMigrator } from './lib/migrators/base'
+import { resolve } from 'node:path'
+import { parseArgs } from 'node:util'
+import chalk from 'chalk'
+import inquirer from 'inquirer'
+import { getToolChoiceList, INTERNAL_CONFIG } from './lib/config'
+import { loadUserConfig, mergeConfigs } from './lib/customConfig'
+import { CommandsMigrator } from './lib/migrators/commands'
+import { MCPMigrator } from './lib/migrators/mcp'
+import { RulesMigrator } from './lib/migrators/rules'
+import { SkillsMigrator } from './lib/migrators/skills'
+import { expandHome, getRuleSourcePath, resolveSourceDir } from './lib/path'
+import { Logger } from './lib/utils/logger'
 
 /**
  * 打印帮助信息
@@ -52,7 +52,7 @@ function printHelp(): void {
 /**
  * 交互式模式
  */
-async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string; tools: ToolKey[] }> {
+async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string, tools: ToolKey[] }> {
   const logger = new Logger()
 
   logger.section('IDE Rules 迁移向导 (IDE Rules Migration Wizard)')
@@ -62,8 +62,8 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
       type: 'checkbox',
       name: 'tools',
       message: '选择要迁移到的工具（使用方向键导航，空格选择，回车确认）：(Select tools to migrate to (use arrow keys to navigate, space to select, enter to confirm):)',
-      choices: getToolChoiceList()
-    }
+      choices: getToolChoiceList(),
+    },
   ])
 
   if (tools.length === 0) {
@@ -76,8 +76,8 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
       type: 'confirm',
       name: 'isProject',
       message: '配置到当前项目（否则为全局配置）？(Configure to current project (global configuration otherwise)?)',
-      default: false
-    }
+      default: false,
+    },
   ])
 
   let projectDir = process.cwd()
@@ -87,8 +87,8 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
         type: 'input',
         name: 'inputDir',
         message: '输入项目目录路径：(Enter project directory path:)',
-        default: process.cwd()
-      }
+        default: process.cwd(),
+      },
     ])
     projectDir = resolve(inputDir!)
   }
@@ -98,15 +98,15 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
       type: 'confirm',
       name: 'overwrite',
       message: '是否自动覆盖已存在的文件？(Auto overwrite existing files?)',
-      default: false
-    }
+      default: false,
+    },
   ])
 
   return {
     tools,
     isProject,
     projectDir,
-    autoOverwrite: overwrite
+    autoOverwrite: overwrite,
   }
 }
 
@@ -116,15 +116,15 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
 async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   const { values, positionals } = parseArgs({
     options: {
-      source: { type: 'string', short: 's' },
-      target: { type: 'string', short: 't' },
-      project: { type: 'boolean', short: 'p' },
+      'source': { type: 'string', short: 's' },
+      'target': { type: 'string', short: 't' },
+      'project': { type: 'boolean', short: 'p' },
       'project-dir': { type: 'string', short: 'd' },
-      yes: { type: 'boolean', short: 'y' },
-      help: { type: 'boolean', short: 'h' },
-      interactive: { type: 'boolean' }
+      'yes': { type: 'boolean', short: 'y' },
+      'help': { type: 'boolean', short: 'h' },
+      'interactive': { type: 'boolean' },
     },
-    allowPositionals: true
+    allowPositionals: true,
   })
 
   if (values.help) {
@@ -152,7 +152,7 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
     isProject,
     projectDir,
     autoOverwrite,
-    sourceDir
+    sourceDir,
   }
 }
 
@@ -179,7 +179,8 @@ async function main(): Promise<void> {
   try {
     const defaultConfigDir = userConfig.global?.defaultConfigDir || expandHome('~/.claude')
     sourceDir = await resolveSourceDir(options.sourceDir, defaultConfigDir)
-  } catch (error) {
+  }
+  catch (error) {
     console.error(chalk.red(error instanceof Error ? error.message : 'Unknown path error'))
     process.exit(1)
   }
@@ -196,7 +197,7 @@ async function main(): Promise<void> {
     skipped: 0,
     error: 0,
     errors: [],
-    tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t)
+    tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
   }
 
   const configTypes: ConfigType[] = ['commands', 'skills', 'rules', 'mcp']
@@ -239,7 +240,8 @@ async function main(): Promise<void> {
       results.errors.push(...typeResults.errors)
 
       spinner.succeed(chalk.green(`迁移 ${configType} 完成`))
-    } catch (error) {
+    }
+    catch (error) {
       spinner.fail(chalk.red(`迁移 ${configType} 失败`))
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(chalk.red(errorMessage))

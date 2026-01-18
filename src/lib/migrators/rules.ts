@@ -2,17 +2,17 @@
  * Rules 迁移器
  */
 
-import { BaseMigrator } from './base'
-import { copyDirectory, copyFileSafe, fileExists, readFile, writeFile, ensureDirectoryExists } from '../utils/file'
-import { markdownToMdc } from '../converters/markdown-to-mdc'
-import { mergeRules } from '../converters/rules-merger'
-import { getToolPath, expandHome } from '../path'
-import { TOOL_CONFIGS } from '../config'
-import chalk from 'chalk'
-import { resolve, join, dirname } from 'path'
-import { stat, readdir } from 'fs/promises'
 import type { ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import { readdir, stat } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
+import chalk from 'chalk'
+import { TOOL_CONFIGS } from '../config'
+import { markdownToMdc } from '../converters/markdown-to-mdc'
+import { mergeRules } from '../converters/rules-merger'
+import { expandHome } from '../path'
+import { copyDirectory, copyFileSafe, ensureDirectoryExists, fileExists, readFile, writeFile } from '../utils/file'
+import { BaseMigrator } from './base'
 
 /**
  * Rules 迁移器类
@@ -34,7 +34,8 @@ export class RulesMigrator extends BaseMigrator {
     try {
       const sourceStats = await stat(this.sourceDir)
       isSourceFile = sourceStats.isFile()
-    } catch (error) {
+    }
+    catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       results.error++
       results.errors.push({ file: this.sourceDir, error: errorMessage })
@@ -43,12 +44,15 @@ export class RulesMigrator extends BaseMigrator {
 
     if (isSourceFile) {
       await this.migrateSingleFile(tool, results)
-    } else {
+    }
+    else {
       if (toolConfig.rules.customMerge) {
         await this.migrateWithCustomMerge(tool, results)
-      } else if (toolConfig.rules.merge) {
+      }
+      else if (toolConfig.rules.merge) {
         await this.migrateWithMerge(tool, results)
-      } else {
+      }
+      else {
         await this.migrateDirect(tool, targetDir, results)
       }
     }
@@ -73,7 +77,8 @@ export class RulesMigrator extends BaseMigrator {
 
     if (needsConversion) {
       await this.copyWithConversion(this.sourceDir, targetDir, results)
-    } else {
+    }
+    else {
       const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
       this.sumStats(results, stats)
     }
@@ -88,7 +93,8 @@ export class RulesMigrator extends BaseMigrator {
       const basePath = this.getTargetDir(tool)
       const fileName = toolConfig.rules.target?.split('/').pop() || ''
       return resolve(basePath, '../', fileName)
-    } else {
+    }
+    else {
       return expandHome(toolConfig.rules.target || '')
     }
   }
@@ -98,7 +104,8 @@ export class RulesMigrator extends BaseMigrator {
    */
   private async migrateWithCustomMerge(tool: ToolKey, results: MigrationStats): Promise<void> {
     const customMerge = TOOL_CONFIGS[tool]?.rules?.customMerge
-    if (!customMerge) return
+    if (!customMerge)
+      return
 
     const targetFile = this.getTargetFilePath(tool)
 
@@ -106,7 +113,8 @@ export class RulesMigrator extends BaseMigrator {
       await customMerge(this.sourceDir, targetFile)
       console.log(chalk.green(`✓ 自定义合并 Rules → ${tool}`))
       results.success++
-    } catch (error) {
+    }
+    catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(chalk.red(`✗ 自定义合并 Rules 失败 (${tool})`), errorMessage)
       results.error++
@@ -124,7 +132,8 @@ export class RulesMigrator extends BaseMigrator {
       await mergeRules(this.sourceDir, targetFile)
       console.log(chalk.green(`✓ 合并 Rules → ${tool}`))
       results.success++
-    } catch (error) {
+    }
+    catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(chalk.red(`✗ 合并 Rules 失败 (${tool})`), errorMessage)
       results.error++
@@ -143,11 +152,13 @@ export class RulesMigrator extends BaseMigrator {
       if (copyResult.success) {
         console.log(chalk.green(`✓ 复制 Rules 文件 → ${tool}`))
         results.success++
-      } else {
+      }
+      else {
         console.log(chalk.yellow(`⚠ 跳过 Rules 文件 (${tool}): 文件已存在`))
         results.skipped++
       }
-    } catch (error) {
+    }
+    catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(chalk.red(`✗ 复制 Rules 文件失败 (${tool})`), errorMessage)
       results.error++
@@ -162,7 +173,7 @@ export class RulesMigrator extends BaseMigrator {
     sourceDir: string,
     targetDir: string,
     results: MigrationStats,
-    transform: (content: string, fileName: string) => string | Promise<string>
+    transform: (content: string, fileName: string) => string | Promise<string>,
   ): Promise<void> {
     try {
       const entries = await readdir(sourceDir, { withFileTypes: true })
@@ -173,7 +184,8 @@ export class RulesMigrator extends BaseMigrator {
 
         if (entry.isDirectory()) {
           await this.copyWithTransform(sourcePath, targetPath, results, transform)
-        } else if (entry.isFile()) {
+        }
+        else if (entry.isFile()) {
           if (await fileExists(targetPath) && !this.options.autoOverwrite) {
             results.skipped++
             continue
@@ -185,13 +197,15 @@ export class RulesMigrator extends BaseMigrator {
             await ensureDirectoryExists(dirname(targetPath))
             await writeFile(targetPath, transformed, 'utf-8')
             results.success++
-          } catch (error) {
+          }
+          catch (error) {
             results.error++
             results.errors.push({ file: entry.name, error: error instanceof Error ? error.message : '转换失败' })
           }
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       results.error++
       results.errors.push({ file: sourceDir, error: error instanceof Error ? error.message : 'Unknown error' })
     }
@@ -203,7 +217,7 @@ export class RulesMigrator extends BaseMigrator {
   private async copyWithConversion(
     sourceDir: string,
     targetDir: string,
-    results: MigrationStats
+    results: MigrationStats,
   ): Promise<void> {
     try {
       const entries = await readdir(sourceDir, { withFileTypes: true })
@@ -214,7 +228,8 @@ export class RulesMigrator extends BaseMigrator {
 
         if (entry.isDirectory()) {
           await this.copyWithConversion(sourcePath, targetPath, results)
-        } else if (entry.isFile()) {
+        }
+        else if (entry.isFile()) {
           if (entry.name.endsWith('.md')) {
             targetPath = targetPath.replace(/\.md$/, '.mdc')
 
@@ -226,24 +241,29 @@ export class RulesMigrator extends BaseMigrator {
             const success = await markdownToMdc(sourcePath, targetPath)
             if (success) {
               results.success++
-            } else {
+            }
+            else {
               results.error++
               results.errors.push({ file: entry.name, error: '转换失败' })
             }
-          } else {
+          }
+          else {
             const result = await copyFileSafe(sourcePath, targetPath, this.options.autoOverwrite)
             if (result.success) {
               results.success++
-            } else if (result.skipped) {
+            }
+            else if (result.skipped) {
               results.skipped++
-            } else {
+            }
+            else {
               results.error++
               results.errors.push({ file: entry.name, error: result.error?.message || '复制失败' })
             }
           }
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       results.error++
       results.errors.push({ file: sourceDir, error: error instanceof Error ? error.message : 'Unknown error' })
     }

@@ -2,16 +2,16 @@
  * Commands 迁移器
  */
 
-import { BaseMigrator } from './base'
-import { copyDirectory, readFile, writeFile, getMarkdownFiles } from '../utils/file'
-import { convertMarkdownToTOML } from '../converters/markdown-to-toml'
-import { join, dirname } from 'path'
-import { mkdir } from 'fs/promises'
-import { existsSync } from 'fs'
-import { TOOL_CONFIGS } from '../config'
-import chalk from 'chalk'
 import type { ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import { existsSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import chalk from 'chalk'
+import { TOOL_CONFIGS } from '../config'
+import { convertMarkdownToTOML } from '../converters/markdown-to-toml'
+import { copyDirectory, getMarkdownFiles, readFile, writeFile } from '../utils/file'
+import { BaseMigrator } from './base'
 
 /**
  * Commands 迁移器类
@@ -36,7 +36,8 @@ export class CommandsMigrator extends BaseMigrator {
 
     if (['gemini', 'iflow'].includes(tool)) {
       await this.migrateWithConversion(targetDir, results, tool)
-    } else {
+    }
+    else {
       // 默认直接复制 (cursor, claude, opencode 等)
       const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
       this.sumStats(results, stats)
@@ -51,10 +52,11 @@ export class CommandsMigrator extends BaseMigrator {
   private async migrateWithCustomTransform(
     targetDir: string,
     results: MigrationStats,
-    tool: ToolKey
+    tool: ToolKey,
   ): Promise<void> {
     const transform = TOOL_CONFIGS[tool]?.commands?.transform
-    if (!transform) return
+    if (!transform)
+      return
 
     const files = await getMarkdownFiles(this.sourceDir)
 
@@ -73,7 +75,8 @@ export class CommandsMigrator extends BaseMigrator {
         await writeFile(targetPath, transformed, 'utf-8')
         console.log(chalk.green(`✓ 自定义转换: ${file} (${tool})`))
         results.success++
-      } catch (error) {
+      }
+      catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error(chalk.red(`✗ 自定义转换失败: ${file}`), errorMessage)
         results.error++
@@ -88,7 +91,7 @@ export class CommandsMigrator extends BaseMigrator {
   private async migrateWithConversion(
     targetDir: string,
     results: MigrationStats,
-    tool: ToolKey
+    tool: ToolKey,
   ): Promise<void> {
     const files = await getMarkdownFiles(this.sourceDir)
 
@@ -100,7 +103,8 @@ export class CommandsMigrator extends BaseMigrator {
         await convertMarkdownToTOML(sourcePath, targetPath)
         console.log(chalk.green(`✓ 转换: ${file} → ${file.replace('.md', '.toml')} (${tool})`))
         results.success++
-      } catch (error) {
+      }
+      catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error(chalk.red(`✗ 转换失败: ${file}`), errorMessage)
         results.error++

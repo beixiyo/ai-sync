@@ -2,17 +2,17 @@
  * 工具配置
  */
 
-import { DEFAULT_TOOL_CONFIGS } from './configs'
-import type { 
-  ToolKey, 
-  ConfigType, 
-  ConfigTypeInfo, 
-  ToolChoice, 
-  ConfigDirChoice, 
-  SyncConfig, 
+import type {
+  ConfigDirChoice,
   ConfigFn,
-  ToolConfig
+  ConfigType,
+  ConfigTypeInfo,
+  SyncConfig,
+  ToolChoice,
+  ToolConfig,
+  ToolKey,
 } from './types/config'
+import { DEFAULT_TOOL_CONFIGS } from './configs'
 
 // 重新导出所有类型
 export * from './types/config'
@@ -21,7 +21,7 @@ export * from './types/config'
  * 项目完整内置配置
  */
 export const INTERNAL_CONFIG = {
-  tools: DEFAULT_TOOL_CONFIGS
+  tools: DEFAULT_TOOL_CONFIGS,
 }
 
 /**
@@ -37,34 +37,34 @@ export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
     name: 'Commands',
     source: '.claude/commands',
     directCopy: ['cursor', 'claude', 'opencode', 'codex'],
-    convertToTOML: ['gemini', 'iflow']
+    convertToTOML: ['gemini', 'iflow'],
   },
   skills: {
     name: 'Skills',
     source: '.claude/skills',
-    directCopy: ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex']
+    directCopy: ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex'],
   },
   rules: {
     name: 'Rules',
     source: '.cursor/rules',
     directCopy: ['cursor'],
-    mergeToMarkdown: ['claude', 'opencode', 'gemini', 'iflow', 'codex']
+    mergeToMarkdown: ['claude', 'opencode', 'gemini', 'iflow', 'codex'],
   },
   mcp: {
     name: 'MCP',
     source: '.claude.json',
     directCopy: ['claude'],
-    convert: ['cursor', 'opencode', 'gemini', 'iflow', 'codex']
-  }
+    convert: ['cursor', 'opencode', 'gemini', 'iflow', 'codex'],
+  },
 }
 
 /**
  * 获取工具选择列表
  */
 export function getToolChoiceList(): ToolChoice[] {
-  return Object.keys(TOOL_CONFIGS).map((key) => ({
+  return Object.keys(TOOL_CONFIGS).map(key => ({
     name: TOOL_CONFIGS[key as ToolKey].name,
-    value: key as ToolKey
+    value: key as ToolKey,
   }))
 }
 
@@ -74,7 +74,7 @@ export function getToolChoiceList(): ToolChoice[] {
 export function getConfigDirChoiceList(): ConfigDirChoice[] {
   return [
     { name: '全局配置（所有项目共享） (Global configuration (shared by all projects))', value: 'global' },
-    { name: '当前项目配置（仅当前项目） (Current project configuration (only this project))', value: 'project' }
+    { name: '当前项目配置（仅当前项目） (Current project configuration (only this project))', value: 'project' },
   ]
 }
 
@@ -83,7 +83,8 @@ export function getConfigDirChoiceList(): ConfigDirChoice[] {
  */
 export function isConfigTypeSupported(tool: string, configType: ConfigType): boolean {
   const toolConfig = TOOL_CONFIGS[tool as ToolKey]
-  if (!toolConfig) return false
+  if (!toolConfig)
+    return false
   return toolConfig.supported.includes(configType)
 }
 
