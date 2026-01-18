@@ -1,7 +1,7 @@
 {
   "name": "@jl-org/ai-sync",
   "version": "1.0.0",
-  "description": "IDE Rules 迁移脚本",
+  "description": "Migrate Commands, Skills, Rules across Cursor, Claude Code, OpenCode, and other AI CLI tools. 在 Cursor、Claude Code、OpenCode 等工具中迁移 Commands、Skills、Rules...",
   "ai-sync": {
     "configDir": "C:\\Code\\ai-sync\\test-data"
   },
@@ -9,6 +9,9 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
   "bin": {
     "ai-sync": "./dist/cli.js"
   },
@@ -28,6 +31,7 @@
     "build": "tsup",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
     "lint": "eslint . --fix --quiet",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -35,9 +39,17 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run tests/lib/integration.test.ts"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "ai-sync",
+    "ide-rules",
+    "migration"
+  ],
+  "author": "CJL <2662442385@qq.com>",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/beixiyo/ai-sync",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "chalk": "^5.6.2",

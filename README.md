@@ -1,5 +1,21 @@
 # AI 工具配置迁移
 
+<div align="center">
+  <img alt="npm-version" src="https://img.shields.io/npm/v/@jl-org/ai-sync?color=red&logo=npm" />
+  <img alt="npm-download" src="https://img.shields.io/npm/dm/@jl-org/ai-sync?logo=npm" />
+  <img alt="License" src="https://img.shields.io/npm/l/@jl-org/ai-sync?color=blue" />
+  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
+  <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
+  <img alt="vitest" src="https://img.shields.io/badge/Vitest-646CFF?logo=vitest&logoColor=white" />
+  <img alt="tsup" src="https://img.shields.io/badge/tsup-161B22?logo=tsup&logoColor=white" />
+</div>
+
+<div align="center">
+  <a href="./README.md">中文</a>
+  <span>|</span>
+  <a href="./README.md#ai-tool-configuration-sync">English</a>
+</div>
+
 [English](#ai-tool-configuration-sync)
 
 自动化将 Claude 配置迁移到不同 AI IDE 工具的脚本
@@ -96,6 +112,22 @@ export default defineConfig({
 
 
 # AI Tool Configuration Sync
+
+<div align="center">
+  <img alt="npm-version" src="https://img.shields.io/npm/v/@jl-org/ai-sync?color=red&logo=npm" />
+  <img alt="npm-download" src="https://img.shields.io/npm/dm/@jl-org/ai-sync?logo=npm" />
+  <img alt="License" src="https://img.shields.io/npm/l/@jl-org/ai-sync?color=blue" />
+  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
+  <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
+  <img alt="vitest" src="https://img.shields.io/badge/Vitest-646CFF?logo=vitest&logoColor=white" />
+  <img alt="tsup" src="https://img.shields.io/badge/tsup-161B22?logo=tsup&logoColor=white" />
+</div>
+
+<div align="center">
+  <a href="./README.md#ai-工具配置迁移">中文</a>
+  <span>|</span>
+  <a href="./README.md">English</a>
+</div>
 
 [中文](#ai-工具配置迁移)
 
