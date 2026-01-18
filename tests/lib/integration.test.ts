@@ -9,21 +9,21 @@ import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, fileExists, removeDirectory } from '@lib/utils/file'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
-// 测试配置
+/** 测试配置 */
 const testSourceDir = join(process.cwd(), 'test-data')
 const testTargetDir = join(process.cwd(), 'test-output')
 
-// 测试选项
+/** 测试选项 */
 const testOptions = {
   isProject: true,
   projectDir: testTargetDir,
   autoOverwrite: true,
 }
 
-// 所有支持的工具
+/** 所有支持的工具 */
 const allTools: ToolKey[] = ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex']
 
-// 添加测试用的自定义工具配置
+/** 添加测试用的自定义工具配置 */
 const testCustomConfig = {
   name: 'Test CLI',
   commands: {
@@ -49,24 +49,24 @@ const testCustomConfig = {
   supported: ['commands', 'skills', 'rules', 'mcp'],
 }
 
-// 所有测试工具（包括自定义工具）
+/** 所有测试工具（包括自定义工具） */
 const allToolsWithCustom = [...allTools, 'test-cli' as ToolKey]
 
-// 在 TOOL_CONFIGS 中添加自定义工具配置
+/** 在 TOOL_CONFIGS 中添加自定义工具配置 */
 ;(TOOL_CONFIGS as any)['test-cli'] = testCustomConfig
 
-// 清理测试环境
+/** 清理测试环境 */
 async function cleanupTestEnvironment() {
-  // 移除测试输出目录
+  /** 移除测试输出目录 */
   await removeDirectory(testTargetDir)
 }
 
-// 准备测试数据
+/** 准备测试数据 */
 async function setupTestData() {
-  // 复制测试数据到临时目录
+  /** 复制测试数据到临时目录 */
   await copyDirectory(join(testSourceDir, '.claude'), join(testTargetDir, '.claude'))
   await copyDirectory(join(testSourceDir, '.cursor'), join(testTargetDir, '.cursor'))
-  // 复制 MCP 配置文件
+  /** 复制 MCP 配置文件 */
   const sourceClaudeJson = join(testSourceDir, '.claude.json')
   const targetClaudeJson = join(testTargetDir, '.claude.json')
   if (await fileExists(sourceClaudeJson)) {
@@ -76,15 +76,15 @@ async function setupTestData() {
 }
 
 describe('集成测试', () => {
-  // 测试开始前清理环境并设置测试数据（只执行一次）
+  /** 测试开始前清理环境并设置测试数据（只执行一次） */
   beforeAll(async () => {
     await cleanupTestEnvironment()
     await setupTestData()
   })
 
-  // 禁用每个测试用例前的清理操作，保留测试输出目录
+  /** 禁用每个测试用例前的清理操作，保留测试输出目录 */
   beforeEach(async () => {
-    // 仅设置测试数据，不清理环境
+    /** 仅设置测试数据，不清理环境 */
     await setupTestData()
   })
 
@@ -99,7 +99,7 @@ describe('集成测试', () => {
         expect(result.success).toBeGreaterThan(0)
         expect(result.error).toBe(0)
 
-        // 验证转换结果
+        /** 验证转换结果 */
         // Cursor
         const cursorCommandPath = join(testTargetDir, '.cursor', 'commands', 'test-command.md')
         expect(await fileExists(cursorCommandPath)).toBe(true)
@@ -109,7 +109,7 @@ describe('集成测试', () => {
         expect(await fileExists(claudeCommandPath)).toBe(true)
 
         // OpenCode
-        const opencodeCommandPath = join(testTargetDir, '.opencode', 'command', 'test-command.md')
+        const opencodeCommandPath = join(testTargetDir, '.config', 'opencode', 'command', 'test-command.md')
         expect(await fileExists(opencodeCommandPath)).toBe(true)
 
         // Gemini CLI (应该是 TOML 格式)
@@ -128,13 +128,13 @@ describe('集成测试', () => {
         const testCliCommandPath = join(testTargetDir, '.test-cli', 'commands', 'test-command.md')
         expect(await fileExists(testCliCommandPath)).toBe(true)
 
-        // 验证 TOML 转换结果
+        /** 验证 TOML 转换结果 */
         const geminiContent = await readFile(geminiCommandPath, 'utf-8')
         expect(geminiContent).toContain('{{args}}')
         expect(geminiContent).toContain('{{arg1}}')
         expect(geminiContent).toContain('echo "Hello, {{arg1}}!"')
 
-        // 验证 Codex 转换结果
+        /** 验证 Codex 转换结果 */
         const codexContent = await readFile(codexCommandPath, 'utf-8')
         expect(codexContent).toContain('# 测试命令')
         expect(codexContent).toContain('这是一个测试命令')
@@ -151,17 +151,14 @@ describe('集成测试', () => {
         expect(result.success).toBeGreaterThan(0)
         expect(result.error).toBe(0)
 
-        // 验证转换结果
+        /** 验证转换结果 */
         for (const tool of allToolsWithCustom) {
           let skillDir: string
           if (tool === 'opencode') {
-            skillDir = join(testTargetDir, `.${tool}`, 'skill')
+            skillDir = join(testTargetDir, '.config', 'opencode', 'skill')
           }
           else if (tool === 'codex') {
-            skillDir = join(testTargetDir, `.${tool}`, 'skills')
-          }
-          else if (tool === 'test-cli') {
-            skillDir = join(testTargetDir, `.${tool}`, 'skills')
+            skillDir = join(testTargetDir, '.codex', 'skills')
           }
           else {
             skillDir = join(testTargetDir, `.${tool}`, 'skills')
@@ -182,18 +179,20 @@ describe('集成测试', () => {
         expect(result.success).toBeGreaterThan(0)
         expect(result.error).toBe(0)
 
-        // 验证转换结果
+        /** 验证转换结果 */
         for (const tool of allToolsWithCustom) {
           const toolConfig = TOOL_CONFIGS[tool]
           const rulesConfig = toolConfig.rules
 
           if (rulesConfig.merge) {
-            // 对于需要合并的工具，应该是单个文件
+            /** 对于需要合并的工具，应该是单个文件 */
             const rulesFileName = (rulesConfig.target || '').split('/').pop() || ''
-            const rulesPath = join(testTargetDir, `.${tool}`, rulesFileName)
+            const rulesPath = tool === 'opencode'
+              ? join(testTargetDir, '.config', 'opencode', rulesFileName)
+              : join(testTargetDir, `.${tool}`, rulesFileName)
             expect(await fileExists(rulesPath)).toBe(true)
 
-            // 验证 Codex 规则文件内容
+            /** 验证 Codex 规则文件内容 */
             if (tool === 'codex') {
               const content = await readFile(rulesPath, 'utf-8')
               expect(content).toContain('测试规则 1')
@@ -201,8 +200,10 @@ describe('集成测试', () => {
             }
           }
           else {
-            // 对于不需要合并的工具，应该是目录
-            const rulesPath = join(testTargetDir, `.${tool}`, 'rules')
+            /** 对于不需要合并的工具，应该是目录 */
+            const rulesPath = tool === 'opencode'
+              ? join(testTargetDir, '.config', 'opencode', 'rules')
+              : join(testTargetDir, `.${tool}`, 'rules')
             expect(await fileExists(rulesPath)).toBe(true)
             expect(await fileExists(join(rulesPath, 'test-rule-1.mdc'))).toBe(true)
             expect(await fileExists(join(rulesPath, 'test-rule-2.mdc'))).toBe(true)
@@ -221,7 +222,7 @@ describe('集成测试', () => {
         expect(result.success).toBeGreaterThan(0)
         expect(result.error).toBe(0)
 
-        // 验证转换结果
+        /** 验证转换结果 */
         for (const tool of allToolsWithCustom) {
           let mcpPath: string
 
@@ -233,7 +234,7 @@ describe('集成测试', () => {
               mcpPath = join(testTargetDir, '.claude', '.claude.json')
               break
             case 'opencode':
-              mcpPath = join(testTargetDir, '.opencode', 'opencode.jsonc')
+              mcpPath = join(testTargetDir, '.config', 'opencode', 'opencode.jsonc')
               break
             case 'gemini':
             case 'iflow':
@@ -265,28 +266,32 @@ describe('集成测试', () => {
       expect(result.success).toBeGreaterThan(0)
       expect(result.error).toBe(0)
 
-      // 验证转换结果
+      /** 验证转换结果 */
       for (const tool of allToolsWithCustom) {
         const toolConfig = TOOL_CONFIGS[tool]
         const rulesConfig = toolConfig.rules
 
         if (rulesConfig.merge) {
-          // 对于需要合并的工具，应该是单个文件
+          /** 对于需要合并的工具，应该是单个文件 */
           const rulesFileName = (rulesConfig.target || '').split('/').pop() || ''
-          const rulesPath = join(testTargetDir, `.${tool}`, rulesFileName)
+          const rulesPath = tool === 'opencode'
+            ? join(testTargetDir, '.config', 'opencode', rulesFileName)
+            : join(testTargetDir, `.${tool}`, rulesFileName)
 
-          // 验证文件存在
+          /** 验证文件存在 */
           expect(await fileExists(rulesPath)).toBe(true)
 
-          // 验证文件内容
+          /** 验证文件内容 */
           const content = await readFile(rulesPath, 'utf-8')
           expect(content).toContain('测试规则 1')
           expect(content).toContain('测试规则 2')
           expect(content).not.toContain('---description:') // 确保没有元数据
         }
         else {
-          // 对于不需要合并的工具，应该是目录
-          const rulesPath = join(testTargetDir, `.${tool}`, 'rules')
+          /** 对于不需要合并的工具，应该是目录 */
+          const rulesPath = tool === 'opencode'
+            ? join(testTargetDir, '.config', 'opencode', 'rules')
+            : join(testTargetDir, `.${tool}`, 'rules')
           expect(await fileExists(rulesPath)).toBe(true)
           expect(await fileExists(join(rulesPath, 'test-rule-1.mdc'))).toBe(true)
           expect(await fileExists(join(rulesPath, 'test-rule-2.mdc'))).toBe(true)

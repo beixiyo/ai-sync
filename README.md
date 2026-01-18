@@ -18,7 +18,8 @@
 在项目根目录创建 `.claude` 目录，包含以下子目录：
 - `.claude/commands/` - 存放自定义命令（Markdown 格式）
 - `.claude/skills/` - 存放技能模块（Markdown 格式）
-- `.cursor/rules/` - 存放 IDE 规则（.mdc 格式）
+- `.claude/CLAUDE.md` | `.cursor/rules/*.mdc` - 存放 IDE 规则
+  > 如果有 `AGENTS.md`, `AGENT.md`, `CLAUDE.md` 则优先当作 rules 同步，最后才是 `.cursor/rules`，按照指定优先级排序
 - `.claude.json` - MCP 配置文件
 
 ### 2. 安装依赖
@@ -59,11 +60,10 @@ pnpm migrate -y
 
 ### 路径规则
 
-- **全局配置**：`~/.cursor/`、`~/.claude/`、`~/.config/opencode/`、`~/.gemini/`、`~/.iflow/`
-- **项目配置**：当前项目目录下的对应文件夹
-- **路径解析**：支持使用 `~` 表示用户主目录
-- **默认目录**：默认使用 `~/.claude` 作为配置源目录
-- **回退逻辑**：如果 `~/.claude` 不存在，自动检查当前项目的 `.claude` 目录
+- **工具配置**：统一使用全局 Home 目录下的配置路径，如 `~/.cursor/`、`~/.claude/`
+- **路径解析**：支持使用 `~` 表示用户主目录，自动处理跨平台路径
+- **默认目录**：默认使用家目录 `~` 作为配置探测起点，优先查找 `~/.claude`
+- **指定路径**：支持通过命令行参数或配置文件指定自定义的源目录和目标项目目录
 
 ### 优先级规则
 

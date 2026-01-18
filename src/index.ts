@@ -48,7 +48,8 @@ function printHelp(): void {
   console.log('  claude      - Claude Code')
   console.log('  opencode    - OpenCode')
   console.log('  gemini      - Gemini CLI')
-  console.log('  iflow       - IFlow CLI\n')
+  console.log('  iflow       - IFlow CLI')
+  console.log('  codex       - Codex\n')
   console.log('示例 (Examples):')
   console.log('  pnpm migrate                    # 交互式模式 (Interactive mode)')
   console.log('  pnpm migrate -t cursor          # 迁移到 Cursor (Migrate to Cursor)')
@@ -68,8 +69,8 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
     {
       type: 'input',
       name: 'sourceDir',
-      message: '输入源配置目录路径，留空则自动探测 claude (Enter source config directory path, leave empty for auto-detection claude):',
-      default: '',
+      message: '源配置目录 (Source Directory):',
+      default: '~',
     },
   ])
 
@@ -77,7 +78,7 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
     {
       type: 'checkbox',
       name: 'tools',
-      message: '选择要迁移到的工具（使用方向键导航，空格选择，回车确认）：(Select tools to migrate to (use arrow keys to navigate, space to select, enter to confirm):)',
+      message: '目标工具 (Target Tools):',
       choices: getToolChoiceList(),
     },
   ])
@@ -87,22 +88,23 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
     process.exit(0)
   }
 
-  const { isProject } = await inquirer.prompt<InteractiveAnswers>([
+  const { isGlobal } = await inquirer.prompt<InteractiveAnswers>([
     {
       type: 'confirm',
-      name: 'isProject',
-      message: '配置到当前项目（否则为全局配置）？(Configure to current project (global configuration otherwise)?)',
-      default: false,
+      name: 'isGlobal',
+      message: '安装到全局目录？(Install to global directory?)',
+      default: true,
     },
   ])
 
+  const isProject = !isGlobal
   let projectDir = process.cwd()
   if (isProject) {
     const { inputDir } = await inquirer.prompt<InteractiveAnswers>([
       {
         type: 'input',
         name: 'inputDir',
-        message: '输入项目目录路径：(Enter project directory path:)',
+        message: '项目路径 (Project Path):',
         default: process.cwd(),
       },
     ])
@@ -113,8 +115,8 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
     {
       type: 'confirm',
       name: 'overwrite',
-      message: '是否自动覆盖已存在的文件？(Auto overwrite existing files?)',
-      default: false,
+      message: '覆盖已有文件？(Overwrite existing files?)',
+      default: true,
     },
   ])
 
@@ -166,7 +168,7 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   const autoOverwrite = values.yes || false
   const sourceDir = values.source
     ? resolve(expandHome(values.source))
-    : process.cwd()
+    : undefined
 
   return {
     tools,
@@ -302,7 +304,7 @@ interface CommandLineOptions {
   isProject: boolean
   projectDir: string
   autoOverwrite: boolean
-  sourceDir: string
+  sourceDir: string | undefined
 }
 
 /**
@@ -311,6 +313,7 @@ interface CommandLineOptions {
 interface InteractiveAnswers {
   tools: ToolKey[]
   isProject: boolean
+  isGlobal: boolean
   inputDir?: string
   overwrite: boolean
   sourceDir?: string
