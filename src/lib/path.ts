@@ -3,9 +3,9 @@
  */
 
 import type { ConfigType, ToolKey } from './config'
-import { stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { directoryExists, fileExists } from './utils/file'
 
 /**
  * 展开家目录路径
@@ -53,7 +53,7 @@ export function getToolPath(
     },
   }
 
-  // 为自定义工具提供默认路径
+  /** 为自定义工具提供默认路径 */
   const toolPath = paths[tool as string] || {
     global: `~/.${tool}`,
     project: `.${tool}`,
@@ -63,7 +63,7 @@ export function getToolPath(
     ? resolve(projectDir, toolPath.project)
     : expandHome(toolPath.global)
 
-  // 为 OpenCode 特殊处理路径，保持 command/skill 的单数形式
+  /** 为 OpenCode 特殊处理路径，保持 command/skill 的单数形式 */
   if (tool === 'opencode') {
     if (configType === 'commands')
       return join(basePath, 'command')
@@ -73,7 +73,7 @@ export function getToolPath(
       return join(basePath, 'opencode.jsonc')
   }
 
-  // 为 Codex 特殊处理路径
+  /** 为 Codex 特殊处理路径 */
   if (tool === 'codex') {
     if (configType === 'commands')
       return join(basePath, 'prompts')
@@ -81,7 +81,7 @@ export function getToolPath(
       return join(basePath, 'config.toml')
   }
 
-  // 为 MCP 配置特殊处理路径
+  /** 为 MCP 配置特殊处理路径 */
   if (configType === 'mcp') {
     switch (tool) {
       case 'cursor':
@@ -114,45 +114,79 @@ export async function resolveSourceDir(
   providedSourceDir: string | undefined,
   defaultConfigDir: string,
 ): Promise<string> {
-  const sourceDir = providedSourceDir || defaultConfigDir
-
-  if (await dirExists(sourceDir)) {
-    return sourceDir
+  // 1. 如果提供了源目录，直接使用
+  if (providedSourceDir) {
+    const resolvedPath = resolve(expandHome(providedSourceDir))
+    /** 如果指向的是 .claude 目录，返回其父目录作为 Root */
+    if (resolvedPath.endsWith('.claude') || resolvedPath.endsWith('.claude/')) {
+      return dirname(resolvedPath)
+    }
+    return resolvedPath
   }
 
-  // 如果默认目录不存在，检查当前项目的 .claude 目录
+  // 2. 检查全局默认目录 ~/.claude
+  const globalClaudeDir = expandHome('~/.claude')
+  if (await directoryExists(globalClaudeDir)) {
+    return homedir()
+  }
+
+  // 3. 检查当前项目的 .claude 目录
   const projectClaudeDir = resolve(process.cwd(), '.claude')
-  if (await dirExists(projectClaudeDir)) {
-    return projectClaudeDir
+  if (await directoryExists(projectClaudeDir)) {
+    return process.cwd()
   }
 
-  throw new Error(`源目录不存在 (Source directory not found): ${sourceDir}\n且当前项目的 .claude 目录也不存在`)
+  // 4. 如果都不存在，尝试使用用户配置的 defaultConfigDir
+  if (defaultConfigDir) {
+    const resolvedDefault = resolve(expandHome(defaultConfigDir))
+    if (await directoryExists(resolvedDefault)) {
+      if (resolvedDefault.endsWith('.claude') || resolvedDefault.endsWith('.claude/')) {
+        return dirname(resolvedDefault)
+      }
+      return resolvedDefault
+    }
+  }
+
+  throw new Error(`源目录不存在 (Source directory not found). 尝试了:\n- ~/.claude\n- ${resolve(process.cwd(), '.claude')}`)
 }
 
 /**
- * 检查文件是否存在
+ * 获取 MCP 源路径（按照优先级检测）
  */
-async function fileExists(filepath: string): Promise<boolean> {
-  try {
-    const stats = await stat(filepath)
-    return stats.isFile()
+export async function getMCPSourcePath(sourceDir: string): Promise<string> {
+  const possibleNames = ['.claude.json', '.mcp.json', 'mcp.json']
+
+  for (const name of possibleNames) {
+    const filePath = resolve(sourceDir, name)
+    if (await fileExists(filePath)) {
+      return filePath
+    }
   }
-  catch {
-    return false
-  }
+
+  /** 默认返回第一个，用于后续错误展示 */
+  return resolve(sourceDir, '.claude.json')
 }
 
 /**
- * 检查目录是否存在
+ * 获取命令源路径
  */
-async function dirExists(dirpath: string): Promise<boolean> {
-  try {
-    const stats = await stat(dirpath)
-    return stats.isDirectory()
+export async function getCommandsSourcePath(sourceDir: string): Promise<string> {
+  const claudePath = resolve(sourceDir, '.claude/commands')
+  if (await directoryExists(claudePath)) {
+    return claudePath
   }
-  catch {
-    return false
+  return resolve(sourceDir, 'commands')
+}
+
+/**
+ * 获取技能源路径
+ */
+export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
+  const claudePath = resolve(sourceDir, '.claude/skills')
+  if (await directoryExists(claudePath)) {
+    return claudePath
   }
+  return resolve(sourceDir, 'skills')
 }
 
 /**
@@ -175,13 +209,13 @@ export async function getRuleSourcePath(sourceDir: string): Promise<string> {
 
   // 2. 检测 .claude/ 目录
   const claudeRulesDir = resolve(sourceDir, '.claude')
-  if (await dirExists(claudeRulesDir)) {
+  if (await directoryExists(claudeRulesDir)) {
     return claudeRulesDir
   }
 
   // 3. 检测 .cursor/rules 目录作为后备
   const cursorRulesDir = resolve(sourceDir, '.cursor/rules')
-  if (await dirExists(cursorRulesDir)) {
+  if (await directoryExists(cursorRulesDir)) {
     return cursorRulesDir
   }
 

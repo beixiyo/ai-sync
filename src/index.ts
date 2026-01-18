@@ -19,7 +19,14 @@ import { CommandsMigrator } from './lib/migrators/commands'
 import { MCPMigrator } from './lib/migrators/mcp'
 import { RulesMigrator } from './lib/migrators/rules'
 import { SkillsMigrator } from './lib/migrators/skills'
-import { expandHome, getRuleSourcePath, resolveSourceDir } from './lib/path'
+import {
+  expandHome,
+  getCommandsSourcePath,
+  getMCPSourcePath,
+  getRuleSourcePath,
+  getSkillsSourcePath,
+  resolveSourceDir,
+} from './lib/path'
 import { Logger } from './lib/utils/logger'
 
 /**
@@ -56,6 +63,15 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
   const logger = new Logger()
 
   logger.section('IDE Rules 迁移向导 (IDE Rules Migration Wizard)')
+
+  const { sourceDir } = await inquirer.prompt<InteractiveAnswers>([
+    {
+      type: 'input',
+      name: 'sourceDir',
+      message: '输入源配置目录路径，留空则自动探测 claude (Enter source config directory path, leave empty for auto-detection claude):',
+      default: '',
+    },
+  ])
 
   const { tools } = await inquirer.prompt<InteractiveAnswers>([
     {
@@ -107,6 +123,7 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string,
     isProject,
     projectDir,
     autoOverwrite: overwrite,
+    sourceDir,
   }
 }
 
@@ -138,14 +155,18 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 
   let tools: ToolKey[] = []
   if (values.target) {
-    // 处理空格或逗号分隔的工具列表
+    /** 处理空格或逗号分隔的工具列表 */
     tools = values.target.split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
   }
 
   const isProject = values.project || false
-  const projectDir = values['project-dir'] ? resolve(values['project-dir']) : process.cwd()
+  const projectDir = values['project-dir']
+    ? resolve(values['project-dir'])
+    : process.cwd()
   const autoOverwrite = values.yes || false
-  const sourceDir = values.source ? resolve(expandHome(values.source)) : process.cwd()
+  const sourceDir = values.source
+    ? resolve(expandHome(values.source))
+    : process.cwd()
 
   return {
     tools,
@@ -162,10 +183,10 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 async function main(): Promise<void> {
   const logger = new Logger()
 
-  // 加载用户配置
+  /** 加载用户配置 */
   const userConfig = await loadUserConfig()
 
-  // 合并配置
+  /** 合并配置 */
   const mergedConfigs = mergeConfigs(INTERNAL_CONFIG, userConfig)
 
   let options = await parseCommandLineArgs()
@@ -174,22 +195,28 @@ async function main(): Promise<void> {
     options = (await interactiveMode()) as CommandLineOptions
   }
 
-  // 探测源目录
+  /** 探测源目录 */
   let sourceDir: string
   try {
     const defaultConfigDir = userConfig.global?.defaultConfigDir || expandHome('~/.claude')
     sourceDir = await resolveSourceDir(options.sourceDir, defaultConfigDir)
   }
   catch (error) {
-    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown path error'))
+    console.error(chalk.red(error instanceof Error
+      ? error.message
+      : 'Unknown path error'))
     process.exit(1)
   }
 
   logger.section('开始迁移 (Start Migration)')
   console.log(chalk.cyan(`源目录 (Source directory): ${sourceDir}`))
   console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map(t => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
-  console.log(chalk.cyan(`配置目录 (Config directory): ${options.isProject ? `项目 (${options.projectDir})` : '全局 (Global)'}`))
-  console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${options.autoOverwrite ? '是 (Yes)' : '否 (No)'}`))
+  console.log(chalk.cyan(`配置目录 (Config directory): ${options.isProject
+    ? `项目 (${options.projectDir})`
+    : '全局 (Global)'}`))
+  console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${options.autoOverwrite
+    ? '是 (Yes)'
+    : '否 (No)'}`))
   console.log('')
 
   const results: MigrationResults = {
@@ -220,15 +247,21 @@ async function main(): Promise<void> {
           migrator = new RulesMigrator(ruleSourcePath, supportedTools, options)
           break
         }
-        case 'commands':
-          migrator = new CommandsMigrator(resolve(sourceDir, '.claude/commands'), supportedTools, options)
+        case 'commands': {
+          const commandsPath = await getCommandsSourcePath(sourceDir)
+          migrator = new CommandsMigrator(commandsPath, supportedTools, options)
           break
-        case 'skills':
-          migrator = new SkillsMigrator(resolve(sourceDir, '.claude/skills'), supportedTools, options)
+        }
+        case 'skills': {
+          const skillsPath = await getSkillsSourcePath(sourceDir)
+          migrator = new SkillsMigrator(skillsPath, supportedTools, options)
           break
-        case 'mcp':
-          migrator = new MCPMigrator(resolve(sourceDir, '.claude.json'), supportedTools, options)
+        }
+        case 'mcp': {
+          const mcpPath = await getMCPSourcePath(sourceDir)
+          migrator = new MCPMigrator(mcpPath, supportedTools, options)
           break
+        }
         default:
           throw new Error(`不支持的配置类型 (Unsupported config type): ${configType}`)
       }
@@ -243,7 +276,9 @@ async function main(): Promise<void> {
     }
     catch (error) {
       spinner.fail(chalk.red(`迁移 ${configType} 失败`))
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Unknown error'
       console.error(chalk.red(errorMessage))
       results.error++
       results.errors.push({ file: configType, error: errorMessage })
@@ -258,7 +293,7 @@ main().catch((error) => {
   process.exit(1)
 })
 
-// 类型定义
+/** 类型定义 */
 /**
  * 命令行选项
  */
@@ -278,13 +313,5 @@ interface InteractiveAnswers {
   isProject: boolean
   inputDir?: string
   overwrite: boolean
-}
-
-/**
- * 源路径配置
- */
-interface SourcePaths {
-  commands: string
-  skills: string
-  rules: string
+  sourceDir?: string
 }
