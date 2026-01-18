@@ -10,6 +10,7 @@ import {
   getMarkdownFiles,
   readJSONFile,
   writeJSONFile,
+  setExecutablePermission,
 } from '@utils/file'
 
 // Mock fs/promises
@@ -55,6 +56,163 @@ describe('file utils', () => {
       vi.mocked(mkdir).mockRejectedValue(error)
 
       await expect(ensureDirectoryExists('/test/dir')).rejects.toThrow()
+    })
+  })
+
+  describe('copyFileSafe', () => {
+    it('should copy file successfully', async () => {
+      vi.mocked(access).mockRejectedValue(new Error('File not found'))
+      vi.mocked(mkdir).mockResolvedValue(undefined)
+      vi.mocked(copyFile).mockResolvedValue(undefined)
+
+      const result = await copyFileSafe('/source/file.txt', '/target/file.txt')
+
+      expect(result).toEqual({ success: true, skipped: false, error: null })
+      expect(access).toHaveBeenCalledWith('/target/file.txt', 0)
+      expect(mkdir).toHaveBeenCalledWith('/target', { recursive: true })
+      expect(copyFile).toHaveBeenCalledWith('/source/file.txt', '/target/file.txt')
+    })
+
+    it('should skip copying if file exists and autoOverwrite is false', async () => {
+      vi.mocked(access).mockResolvedValue(undefined)
+
+      const result = await copyFileSafe('/source/file.txt', '/target/file.txt', false)
+
+      expect(result).toEqual({ success: false, skipped: true, error: null })
+      expect(copyFile).not.toHaveBeenCalled()
+    })
+
+    it('should overwrite file if autoOverwrite is true', async () => {
+      vi.mocked(access).mockResolvedValue(undefined)
+      vi.mocked(mkdir).mockResolvedValue(undefined)
+      vi.mocked(copyFile).mockResolvedValue(undefined)
+
+      const result = await copyFileSafe('/source/file.txt', '/target/file.txt', true)
+
+      expect(result).toEqual({ success: true, skipped: false, error: null })
+      expect(copyFile).toHaveBeenCalled()
+    })
+
+    it('should handle copy errors', async () => {
+      vi.mocked(access).mockRejectedValue(new Error('File not found'))
+      vi.mocked(mkdir).mockResolvedValue(undefined)
+      const copyError = new Error('Copy failed')
+      vi.mocked(copyFile).mockRejectedValue(copyError)
+
+      const result = await copyFileSafe('/source/file.txt', '/target/file.txt')
+
+      expect(result).toEqual({ success: false, skipped: false, error: copyError })
+    })
+  })
+
+  describe('copyDirectory', () => {
+    it('should copy directory recursively', async () => {
+      const mockEntries = [
+        { name: 'file1.md', isFile: () => true, isDirectory: () => false },
+        { name: 'file2.mdc', isFile: () => true, isDirectory: () => false },
+        { name: 'subdir', isFile: () => false, isDirectory: () => true },
+      ]
+      const mockSubdirEntries = [
+        { name: 'file3.md', isFile: () => true, isDirectory: () => false },
+      ]
+
+      vi.mocked(readdir)
+        .mockResolvedValueOnce(mockEntries as any)
+        .mockResolvedValueOnce(mockSubdirEntries as any)
+      vi.mocked(access).mockRejectedValue(new Error('File not found'))
+      vi.mocked(mkdir).mockResolvedValue(undefined)
+      vi.mocked(copyFile).mockResolvedValue(undefined)
+
+      const result = await copyDirectory('/source/dir', '/target/dir')
+
+      expect(result).toEqual({ success: 3, skipped: 0, error: 0, errors: [] })
+      expect(readdir).toHaveBeenCalledWith('/source/dir', { withFileTypes: true })
+      // Check that readdir was called with the subdirectory path (handling Windows path separators)
+      expect(readdir).toHaveBeenCalledWith(expect.any(String), { withFileTypes: true })
+      const readdirCalls = vi.mocked(readdir).mock.calls
+      expect(readdirCalls.some(call => (call[0] as string).endsWith('subdir'))).toBe(true)
+    })
+
+    it('should handle readdir errors', async () => {
+      const error = new Error('Permission denied')
+      vi.mocked(readdir).mockRejectedValue(error)
+
+      const result = await copyDirectory('/source/dir', '/target/dir')
+
+      expect(result).toEqual({
+        success: 0,
+        skipped: 0,
+        error: 1,
+        errors: [{ file: '/source/dir', error: 'Permission denied' }]
+      })
+    })
+
+    it('should count skipped files', async () => {
+      const mockEntries = [
+        { name: 'file1.md', isFile: () => true, isDirectory: () => false },
+        { name: 'file2.mdc', isFile: () => true, isDirectory: () => false },
+      ]
+
+      vi.mocked(readdir).mockResolvedValue(mockEntries as any)
+      vi.mocked(access).mockResolvedValue(undefined) // Both files exist in target
+
+      const result = await copyDirectory('/source/dir', '/target/dir', false)
+
+      expect(result).toEqual({ success: 0, skipped: 2, error: 0, errors: [] })
+    })
+
+    it('should handle file copy errors in directory', async () => {
+      const mockEntries = [
+        { name: 'file1.md', isFile: () => true, isDirectory: () => false },
+        { name: 'file2.mdc', isFile: () => true, isDirectory: () => false },
+      ]
+
+      vi.mocked(readdir).mockResolvedValue(mockEntries as any)
+      vi.mocked(access).mockRejectedValue(new Error('File not found')) // Files don't exist in target
+      vi.mocked(mkdir).mockResolvedValue(undefined)
+      // First file copy succeeds, second fails
+      vi.mocked(copyFile)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Copy failed'))
+
+      const result = await copyDirectory('/source/dir', '/target/dir')
+
+      expect(result).toEqual({
+        success: 1,
+        skipped: 0,
+        error: 1,
+        errors: [{ file: 'file2.mdc', error: 'Copy failed' }]
+      })
+    })
+  })
+
+  describe('setExecutablePermission', () => {
+    it('should set executable permission on non-Windows systems', async () => {
+      vi.stubEnv('NODE_ENV', 'test')
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'linux' })
+
+      vi.mocked(chmod).mockResolvedValue(undefined)
+
+      await setExecutablePermission('/test/script.sh')
+
+      expect(chmod).toHaveBeenCalledWith('/test/script.sh', 0o755)
+
+      // Restore original platform
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
+    })
+
+    it('should not set executable permission on Windows', async () => {
+      vi.stubEnv('NODE_ENV', 'test')
+      const originalPlatform = process.platform
+      Object.defineProperty(process, 'platform', { value: 'win32' })
+
+      await setExecutablePermission('/test/script.sh')
+
+      expect(chmod).not.toHaveBeenCalled()
+
+      // Restore original platform
+      Object.defineProperty(process, 'platform', { value: originalPlatform })
     })
   })
 

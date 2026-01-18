@@ -2,9 +2,11 @@
  * 文件工具函数
  */
 
-import { readFile, writeFile, mkdir, readdir, stat, copyFile, access, constants, chmod } from 'fs/promises'
+import { readFile, writeFile, mkdir, readdir, stat, copyFile, access, constants, chmod, rm } from 'fs/promises'
+export { readFile, writeFile }
 import { join, dirname } from 'path'
 import type { MigrationError } from './logger'
+import TOML from '@iarna/toml'
 
 /**
  * 确保目录存在
@@ -144,6 +146,22 @@ export async function writeJSONFile(filePath: string, data: unknown): Promise<vo
 }
 
 /**
+ * 读取 TOML 文件
+ */
+export async function readTOMLFile<T = unknown>(filePath: string): Promise<T> {
+  const content = await readFile(filePath, 'utf-8')
+  return TOML.parse(content) as unknown as T
+}
+
+/**
+ * 写入 TOML 文件
+ */
+export async function writeTOMLFile(filePath: string, data: any): Promise<void> {
+  await ensureDirectoryExists(dirname(filePath))
+  await writeFile(filePath, TOML.stringify(data), 'utf-8')
+}
+
+/**
  * 设置可执行权限
  */
 export async function setExecutablePermission(filePath: string): Promise<void> {
@@ -163,4 +181,17 @@ export interface CopyDirectoryResults {
   skipped: number
   error: number
   errors: MigrationError[]
+}
+
+/**
+ * 移除目录及其内容
+ */
+export async function removeDirectory(dirPath: string): Promise<void> {
+  try {
+    await rm(dirPath, { recursive: true, force: true })
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code !== 'ENOENT') {
+      throw error
+    }
+  }
 }

@@ -9,42 +9,44 @@ import { parseArgs } from 'util'
 import inquirer from 'inquirer'
 import chalk from 'chalk'
 import { resolve } from 'path'
+import { getRuleSourcePath, expandHome, resolveSourceDir } from './lib/path'
 import { CommandsMigrator } from './lib/migrators/commands'
 import { SkillsMigrator } from './lib/migrators/skills'
 import { RulesMigrator } from './lib/migrators/rules'
-import { HooksMigrator } from './lib/migrators/hooks'
-import { getToolChoiceList, getScopeChoiceList, isConfigTypeSupported, TOOL_CONFIGS } from './lib/config'
+import { MCPMigrator } from './lib/migrators/mcp'
+import { getToolChoiceList, isConfigTypeSupported, TOOL_CONFIGS, INTERNAL_CONFIG } from './lib/config'
+import { loadUserConfig, mergeConfigs } from './lib/customConfig'
 import { Logger } from './lib/utils/logger'
-import { directoryExists } from './lib/utils/file'
 import type { ConfigType, ToolKey } from './lib/config'
-import type { MigrateOptions } from './lib/migrators/commands'
+import type { MigrateOptions } from './lib/migrators/types'
 import type { MigrationResults } from './lib/utils/logger'
+import type { BaseMigrator } from './lib/migrators/base'
 
 /**
  * 打印帮助信息
  */
 function printHelp(): void {
-  console.log(chalk.cyan('IDE Rules 迁移脚本\n'))
-  console.log('用法: pnpm migrate [options]\n')
-  console.log('选项:')
-  console.log('  -s, --source <dir>     源目录（默认：当前目录的 IDERules）')
-  console.log('  -t, --target <tools>   目标工具，逗号分隔（如：cursor,claude,opencode）')
-  console.log('  -p, --project          项目级配置')
-  console.log('  -d, --project-dir <dir> 项目目录')
-  console.log('  -y, --yes              自动覆盖')
-  console.log('  -h, --help             显示帮助信息')
-  console.log('  --interactive          强制交互模式（默认）\n')
-  console.log('支持的工具:')
+  console.log(chalk.cyan('IDE Rules 迁移脚本 (IDE Rules Migration Script)\n'))
+  console.log('用法 (Usage): pnpm migrate [options]\n')
+  console.log('选项 (Options):')
+  console.log('  -s, --source <dir>     源目录 (Source directory)（默认：当前目录的 IDERules）')
+  console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
+  console.log('  -p, --project          配置目录为项目级 (Config directory is project-level)')
+  console.log('  -d, --project-dir <dir> 配置目录路径 (Config directory path)')
+  console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
+  console.log('  -h, --help             显示帮助信息 (Show help)')
+  console.log('  --interactive          强制交互模式 (Force interactive mode)（默认）\n')
+  console.log('支持的工具 (Supported tools):')
   console.log('  cursor      - Cursor')
   console.log('  claude      - Claude Code')
   console.log('  opencode    - OpenCode')
   console.log('  gemini      - Gemini CLI')
   console.log('  iflow       - IFlow CLI\n')
-  console.log('示例:')
-  console.log('  pnpm migrate                    # 交互式模式')
-  console.log('  pnpm migrate -t cursor          # 迁移到 Cursor')
-  console.log('  pnpm migrate -t cursor,claude   # 迁移到多个工具')
-  console.log('  pnpm migrate -p -d /path/to/project  # 项目级配置')
+  console.log('示例 (Examples):')
+  console.log('  pnpm migrate                    # 交互式模式 (Interactive mode)')
+  console.log('  pnpm migrate -t cursor          # 迁移到 Cursor (Migrate to Cursor)')
+  console.log('  pnpm migrate -t cursor,claude   # 迁移到多个工具 (Migrate to multiple tools)')
+  console.log('  pnpm migrate -p -d /path/to/project  # 项目级配置 (Project-level configuration)')
 }
 
 /**
@@ -53,19 +55,19 @@ function printHelp(): void {
 async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string; tools: ToolKey[] }> {
   const logger = new Logger()
 
-  logger.section('IDE Rules 迁移向导')
+  logger.section('IDE Rules 迁移向导 (IDE Rules Migration Wizard)')
 
   const { tools } = await inquirer.prompt<InteractiveAnswers>([
     {
       type: 'checkbox',
       name: 'tools',
-      message: '选择要迁移到的工具（使用方向键导航，空格选择，回车确认）：',
+      message: '选择要迁移到的工具（使用方向键导航，空格选择，回车确认）：(Select tools to migrate to (use arrow keys to navigate, space to select, enter to confirm):)',
       choices: getToolChoiceList()
     }
   ])
 
   if (tools.length === 0) {
-    console.log(chalk.yellow('未选择任何工具，退出。'))
+    console.log(chalk.yellow('未选择任何工具，退出。(No tools selected, exiting.)'))
     process.exit(0)
   }
 
@@ -73,7 +75,7 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
     {
       type: 'confirm',
       name: 'isProject',
-      message: '配置到当前项目（否则为全局配置）？',
+      message: '配置到当前项目（否则为全局配置）？(Configure to current project (global configuration otherwise)?)',
       default: false
     }
   ])
@@ -84,7 +86,7 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
       {
         type: 'input',
         name: 'inputDir',
-        message: '输入项目目录路径：',
+        message: '输入项目目录路径：(Enter project directory path:)',
         default: process.cwd()
       }
     ])
@@ -95,7 +97,7 @@ async function interactiveMode(): Promise<MigrateOptions & { sourceDir?: string;
     {
       type: 'confirm',
       name: 'overwrite',
-      message: '是否自动覆盖已存在的文件？',
+      message: '是否自动覆盖已存在的文件？(Auto overwrite existing files?)',
       default: false
     }
   ])
@@ -136,13 +138,14 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 
   let tools: ToolKey[] = []
   if (values.target) {
-    tools = values.target.split(',').map(t => t.trim().toLowerCase()) as ToolKey[]
+    // 处理空格或逗号分隔的工具列表
+    tools = values.target.split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
   }
 
   const isProject = values.project || false
   const projectDir = values['project-dir'] ? resolve(values['project-dir']) : process.cwd()
   const autoOverwrite = values.yes || false
-  const sourceDir = values.source ? resolve(values.source) : process.cwd()
+  const sourceDir = values.source ? resolve(expandHome(values.source)) : process.cwd()
 
   return {
     tools,
@@ -159,24 +162,33 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 async function main(): Promise<void> {
   const logger = new Logger()
 
+  // 加载用户配置
+  const userConfig = await loadUserConfig()
+
+  // 合并配置
+  const mergedConfigs = mergeConfigs(INTERNAL_CONFIG, userConfig)
+
   let options = await parseCommandLineArgs()
 
   if (options === null) {
     options = (await interactiveMode()) as CommandLineOptions
   }
 
-  const sourceDir = options.sourceDir || process.cwd()
-
-  if (!(await directoryExists(sourceDir))) {
-    console.error(chalk.red(`源目录不存在: ${sourceDir}`))
+  // 探测源目录
+  let sourceDir: string
+  try {
+    const defaultConfigDir = userConfig.global?.defaultConfigDir || expandHome('~/.claude')
+    sourceDir = await resolveSourceDir(options.sourceDir, defaultConfigDir)
+  } catch (error) {
+    console.error(chalk.red(error instanceof Error ? error.message : 'Unknown path error'))
     process.exit(1)
   }
 
-  logger.section('开始迁移')
-  console.log(chalk.cyan(`源目录: ${sourceDir}`))
-  console.log(chalk.cyan(`目标工具: ${options.tools.map(t => TOOL_CONFIGS[t]?.name || t).join(', ')}`))
-  console.log(chalk.cyan(`作用域: ${options.isProject ? `项目 (${options.projectDir})` : '全局'}`))
-  console.log(chalk.cyan(`自动覆盖: ${options.autoOverwrite ? '是' : '否'}`))
+  logger.section('开始迁移 (Start Migration)')
+  console.log(chalk.cyan(`源目录 (Source directory): ${sourceDir}`))
+  console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map(t => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
+  console.log(chalk.cyan(`配置目录 (Config directory): ${options.isProject ? `项目 (${options.projectDir})` : '全局 (Global)'}`))
+  console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${options.autoOverwrite ? '是 (Yes)' : '否 (No)'}`))
   console.log('')
 
   const results: MigrationResults = {
@@ -184,13 +196,13 @@ async function main(): Promise<void> {
     skipped: 0,
     error: 0,
     errors: [],
-    tools: options.tools.map(t => TOOL_CONFIGS[t]?.name || t)
+    tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t)
   }
 
-  const configTypes: ConfigType[] = ['commands', 'skills', 'rules', 'hooks']
+  const configTypes: ConfigType[] = ['commands', 'skills', 'rules', 'mcp']
 
   for (const configType of configTypes) {
-    const supportedTools = options.tools.filter(t => isConfigTypeSupported(t, configType))
+    const supportedTools = options.tools.filter(supportedTool => mergedConfigs.tools?.[supportedTool]?.supported?.includes(configType))
 
     if (supportedTools.length === 0) {
       continue
@@ -199,35 +211,25 @@ async function main(): Promise<void> {
     const spinner = logger.start(`迁移 ${configType}...`)
 
     try {
-      let migrator: CommandsMigrator | SkillsMigrator | RulesMigrator | HooksMigrator
-      const sourcePaths: SourcePaths = {
-        commands: resolve(sourceDir, '.claude/commands'),
-        skills: resolve(sourceDir, '.claude/skills'),
-        rules: resolve(sourceDir, '.cursor/rules'),
-        hooks: {
-          dir: resolve(sourceDir, '.cursor/hooks'),
-          config: resolve(sourceDir, '.cursor/hooks.json')
-        }
-      }
+      let migrator: BaseMigrator
 
       switch (configType) {
+        case 'rules': {
+          const ruleSourcePath = await getRuleSourcePath(sourceDir)
+          migrator = new RulesMigrator(ruleSourcePath, supportedTools, options)
+          break
+        }
         case 'commands':
-          migrator = new CommandsMigrator(sourcePaths.commands, supportedTools, options)
+          migrator = new CommandsMigrator(resolve(sourceDir, '.claude/commands'), supportedTools, options)
           break
         case 'skills':
-          migrator = new SkillsMigrator(sourcePaths.skills, supportedTools, options)
+          migrator = new SkillsMigrator(resolve(sourceDir, '.claude/skills'), supportedTools, options)
           break
-        case 'rules':
-          migrator = new RulesMigrator(sourcePaths.rules, supportedTools, options)
+        case 'mcp':
+          migrator = new MCPMigrator(resolve(sourceDir, '.claude.json'), supportedTools, options)
           break
-        case 'hooks':
-          migrator = new HooksMigrator(
-            sourcePaths.hooks.dir,
-            sourcePaths.hooks.config,
-            supportedTools,
-            options
-          )
-          break
+        default:
+          throw new Error(`不支持的配置类型 (Unsupported config type): ${configType}`)
       }
 
       const typeResults = await migrator.migrate()
@@ -236,9 +238,9 @@ async function main(): Promise<void> {
       results.error += typeResults.error
       results.errors.push(...typeResults.errors)
 
-      spinner.succeed(`迁移 ${configType}...`)
+      spinner.succeed(chalk.green(`迁移 ${configType} 完成`))
     } catch (error) {
-      spinner.fail(`迁移 ${configType}...`)
+      spinner.fail(chalk.red(`迁移 ${configType} 失败`))
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(chalk.red(errorMessage))
       results.error++
@@ -250,7 +252,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  console.error(chalk.red('迁移失败:'), error)
+  console.error(chalk.red('迁移失败 (Migration failed):'), error)
   process.exit(1)
 })
 
@@ -283,8 +285,4 @@ interface SourcePaths {
   commands: string
   skills: string
   rules: string
-  hooks: {
-    dir: string
-    config: string
-  }
 }

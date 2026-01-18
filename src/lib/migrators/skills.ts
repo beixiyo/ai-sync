@@ -2,41 +2,72 @@
  * Skills 迁移器
  */
 
-import { copyDirectory } from '../utils/file'
-import { getToolPath } from '../path'
-import type { CopyDirectoryResults } from '../utils/file'
+import { BaseMigrator } from './base'
+import { copyDirectory, getMarkdownFiles, fileExists, ensureDirectoryExists, readFile, writeFile } from '../utils/file'
+import { TOOL_CONFIGS } from '../config'
+import { join, dirname } from 'path'
 import type { ToolKey } from '../config'
-import type { MigrateOptions } from './commands'
+import type { MigrateOptions, MigrationStats } from './types'
 
 /**
  * Skills 迁移器类
  */
-export class SkillsMigrator {
-  private sourceDir: string
-  private targetTools: ToolKey[]
-  private options: MigrateOptions
-
+export class SkillsMigrator extends BaseMigrator {
   constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions) {
-    this.sourceDir = sourceDir
-    this.targetTools = targetTools
-    this.options = options
+    super(sourceDir, targetTools, options, 'skills')
   }
 
   /**
-   * 执行迁移
+   * 为单个工具执行迁移
    */
-  async migrate(): Promise<CopyDirectoryResults> {
-    const results: CopyDirectoryResults = { success: 0, skipped: 0, error: 0, errors: [] }
+  protected async migrateForTool(tool: ToolKey, targetDir: string): Promise<MigrationStats> {
+    const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
+    const toolConfig = TOOL_CONFIGS[tool]
 
-    for (const tool of this.targetTools) {
-      const targetDir = getToolPath(tool, 'skills', this.options.isProject, this.options.projectDir)
+    // 如果有自定义 transform 函数，使用自定义逻辑
+    if (toolConfig?.skills?.transform) {
+      await this.migrateWithTransform(targetDir, results, tool)
+    } else {
       const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
-      results.success += stats.success
-      results.skipped += stats.skipped
-      results.error += stats.error
-      results.errors.push(...stats.errors)
+      this.sumStats(results, stats)
     }
 
     return results
+  }
+
+  /**
+   * 带自定义转换的迁移
+   */
+  private async migrateWithTransform(
+    targetDir: string,
+    results: MigrationStats,
+    tool: ToolKey
+  ): Promise<void> {
+    const transform = TOOL_CONFIGS[tool]?.skills?.transform
+    if (!transform) return
+
+    const files = await getMarkdownFiles(this.sourceDir)
+
+    for (const file of files) {
+      const sourcePath = join(this.sourceDir, file)
+      const targetPath = join(targetDir, file)
+
+      if (await fileExists(targetPath) && !this.options.autoOverwrite) {
+        results.skipped++
+        continue
+      }
+
+      try {
+        const content = await readFile(sourcePath, 'utf-8')
+        const transformed = await transform(content, file)
+        await ensureDirectoryExists(dirname(targetPath))
+        await writeFile(targetPath, transformed, 'utf-8')
+        results.success++
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        results.error++
+        results.errors.push({ file, error: errorMessage })
+      }
+    }
   }
 }

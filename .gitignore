@@ -1,1 +1,13 @@
 node_modules
+coverage/
+*.log
+*.tmp
+dist
+.hidden
+
+# test
+.vitest/
+*.test.js.snap
+*.test.tsx.snap
+*.test.ts.snap
+test-output

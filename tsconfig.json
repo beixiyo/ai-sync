@@ -1,65 +1,40 @@
 {
   "compilerOptions": {
-    /* 🎯 基础编译配置 */
-    "target": "ES2022", // 编译目标版本，生成 ES2022 语法的 JavaScript 代码
-    "module": "ESNext", // 模块系统，使用最新的 ES 模块语法
-    "moduleResolution": "Bundler", // 模块解析策略，适用于现代打包工具（如 Vite、Webpack）
-    "resolveJsonModule": true, // 允许导入 JSON 文件作为模块
-    "esModuleInterop": true, // 启用 ES 模块互操作性，允许 CommonJS 和 ES 模块混用
-    "isolatedModules": true, // 确保每个文件都能独立编译，提高构建工具性能
-    "skipLibCheck": true, // 跳过声明文件的类型检查，提高编译速度
-    "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致，避免跨平台问题
-
-    /* 🛡️ 类型检查配置 */
-    "strict": true, // 启用所有严格类型检查选项
-    "noImplicitAny": true, // 禁止隐式 any 类型，必须显式声明类型
-    "strictNullChecks": true, // 严格的 null 检查，防止 null/undefined 错误
-    "strictFunctionTypes": true, // 严格的函数类型检查，确保函数参数类型安全
-    "strictBindCallApply": true, // 严格的 bind、call、apply 检查
-    "strictPropertyInitialization": true, // 严格的属性初始化检查，类属性必须初始化
-    "noImplicitThis": true, // 禁止隐式 this，必须显式指定 this 类型
-    "noImplicitReturns": false, // 允许隐式返回
-    "noFallthroughCasesInSwitch": true, // 禁止 switch 语句中的 fallthrough 情况
-    "noUnusedLocals": false, // 不检查未使用的局部变量
-    "noUnusedParameters": false, // 不检查未使用的函数参数
-    "noPropertyAccessFromIndexSignature": false, // 允许通过点语法访问索引签名属性
-
-    /* 📚 库和类型支持配置 */
-    "lib": [
-      "ES2022",        // ES2022 标准库支持
-      "DOM",           // 浏览器 DOM API 类型定义
-      "DOM.Iterable",  // DOM 可迭代对象类型支持
-      "WebWorker"      // Web Worker API 类型支持
-    ],
-
-    /* 🛤️ 路径解析配置 */
-    "baseUrl": ".", // 模块解析的基础路径
-
-    /* 📁 输出文件配置 */
-    "outDir": "./dist",     // 编译输出目录
-    "rootDir": "./src", // 源文件根目录
-    "declaration": true, // 生成声明文件（.d.ts）
-    "declarationMap": true, // 生成声明文件的 source map
-    "declarationDir": "./dist/types", // 声明文件输出目录
-    "sourceMap": true, // 生成 source map 文件，便于调试
-    "removeComments": false, // 保留注释在编译后的代码中
-
-    /* 🚀 现代构建工具优化配置 */
-    "allowJs": true, // 允许编译 JavaScript 文件
-    "checkJs": false, // 不对 JavaScript 文件进行类型检查
-    "incremental": true, // 启用增量编译，提高后续编译速度
-    "tsBuildInfoFile": "./node_modules/.tsbuildinfo", // 增量编译信息文件位置
-
-    /* 🎨 装饰器支持配置 */
-    "experimentalDecorators": true, // 启用实验性装饰器支持
-    "emitDecoratorMetadata": true, // 为装饰器生成元数据，支持反射
-
-    /* 🏗️ Monorepo 支持配置 */
-    "composite": true // 启用项目引用，支持 Monorepo 项目结构
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "baseUrl": ".",
+    "paths": {
+      "@lib/*": ["./src/lib/*"],
+      "@utils/*": ["./src/lib/utils/*"]
+    },
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "removeComments": false,
+    "allowJs": true,
+    "checkJs": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-
-  /* 📂 文件包含配置 */
-  "include": [ // 包含 src 目录下的所有文件
-    "src"
-  ]
+  "include": ["src", "tests"]
 }

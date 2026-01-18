@@ -3,6 +3,7 @@
  */
 
 import YAML from 'yaml'
+import { stringify as tomlStringify } from '@iarna/toml'
 import { readFile, writeFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { ensureDirectoryExists } from '../utils/file'
@@ -28,7 +29,10 @@ export async function convertMarkdownToTOML(sourcePath: string, targetPath: stri
 
   const description = frontmatter.description || ''
 
+  // 转换参数语法
   prompt = convertParameterSyntax(prompt)
+
+  // 移除不支持的配置
   prompt = removeUnsupportedConfig(prompt)
 
   const toml = generateTOML(description, prompt)
@@ -41,9 +45,16 @@ export async function convertMarkdownToTOML(sourcePath: string, targetPath: stri
  * 转换参数语法
  */
 function convertParameterSyntax(prompt: string): string {
+  // 转换参数语法
   prompt = prompt.replace(/\$ARGUMENTS/g, '{{args}}')
-  prompt = prompt.replace(/\$(\d+)/g, '{{arg$1}}')
-  prompt = prompt.replace(/`([^`]+)`/g, '!{$1}')
+  prompt = prompt.replace(/\$([1-9][0-9]*)/g, '{{arg$1}}')
+
+  // 转换行内代码语法，处理转义的反引号
+  prompt = prompt.replace(/(?<!\\)`([^`\\]*(?:\\.[^`\\]*)*)`(?!\\)/g, '!{$1}')
+
+  // 转换代码块语法，确保正确处理复杂情况
+  prompt = prompt.replace(/```[\w]*\r?\n([\s\S]*?)\r?\n```/g, '!{$1}')
+
   return prompt
 }
 
@@ -61,11 +72,13 @@ function removeUnsupportedConfig(prompt: string): string {
  * 生成 TOML 格式
  */
 function generateTOML(description: string, prompt: string): string {
-  let toml = `prompt = """\n${prompt.trim()}\n"""\n`
-  if (description) {
-    toml = `description = "${description}"\n${toml}`
+  const data: Record<string, any> = {
+    prompt: prompt.trim()
   }
-  return toml
+  if (description) {
+    data.description = description
+  }
+  return tomlStringify(data)
 }
 
 interface Frontmatter {

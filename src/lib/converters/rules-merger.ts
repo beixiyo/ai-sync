@@ -21,31 +21,31 @@ export async function mergeRules(sourceDir: string, targetFile: string): Promise
     return
   }
 
-  let content = '# IDE Rules\n\n'
-  content += '> 本文件由 IDE Rules 迁移脚本自动生成\n'
-  content += `> 源文件：${mdcFiles.join(', ')}\n\n`
-  content += '---\n\n'
+  let content = ''
 
   for (const file of mdcFiles) {
     const filePath = join(sourceDir, file)
     const fileContent = await readFile(filePath, 'utf-8')
 
-    let frontmatter: Frontmatter = {}
     let body = fileContent
+    let frontmatter: Frontmatter = {}
 
-    const frontmatterMatch = fileContent.match(/^---\n([\s\S]*?)\n---/)
+    // 严谨匹配 YAML Frontmatter (--- ... ---)
+    const frontmatterMatch = fileContent.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
     if (frontmatterMatch) {
       try {
         frontmatter = YAML.parse(frontmatterMatch[1]) as Frontmatter
-        body = fileContent.replace(/^---[\s\S]*?---\n/, '')
-      } catch (error) {
-        console.warn(`Frontmatter 解析失败: ${file}`)
+        body = fileContent.substring(frontmatterMatch[0].length)
+      } catch (e) {
+        // 如果解析失败，尝试仅剥离标记线
       }
     }
 
-    content += `## ${frontmatter.description || file.replace('.mdc', '')}\n\n`
-    content += body
-    content += '\n\n---\n\n'
+    const title = frontmatter.description || file.replace('.mdc', '')
+    // 清理 body 开头的空行和可能残余的 frontmatter 标记
+    const trimmedBody = body.replace(/^---[\s\S]*?---\n/g, '').trimStart()
+
+    content += `# ${title}\n\n${trimmedBody}\n\n`
   }
 
   await ensureDirectoryExists(dirname(targetFile))

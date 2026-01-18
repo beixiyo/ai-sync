@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "local-mcp": {
+      "command": "npx",
+      "args": [
+        "mcp-server",
+        "--api-key",
+        "test-api-key"
+      ],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    "remote-mcp": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp",
+      "headers": {
+        "Authorization": "Bearer test-token"
+      }
+    }
+  }
+}

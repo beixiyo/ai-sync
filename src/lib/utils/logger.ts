@@ -1,5 +1,5 @@
 /**
- * 日志工具类
+ * 日志工具类 (Logger Utility Class)
  */
 
 import ora from 'ora'
@@ -7,7 +7,7 @@ import chalk from 'chalk'
 import type { Ora } from 'ora'
 
 /**
- * 日志工具类
+ * 日志工具类 (Logger Utility Class)
  */
 export class Logger {
   private spinners: Map<string, Ora>
@@ -17,70 +17,42 @@ export class Logger {
   }
 
   /**
-   * 开始加载动画
+   * 开始加载动画 (Start loading animation)
    */
   start(message: string): Ora {
-    const spinner = ora(chalk.cyan(message)).start()
-    this.spinners.set(message, spinner)
-    return spinner
+    return ora(chalk.cyan(message)).start()
   }
 
   /**
-   * 成功
-   */
-  succeed(message: string): void {
-    const spinner = this.spinners.get(message)
-    if (spinner) {
-      spinner.succeed(chalk.green(message))
-      this.spinners.delete(message)
-    }
-  }
-
-  /**
-   * 失败
-   */
-  fail(message: string, error?: string | Error): void {
-    const spinner = this.spinners.get(message)
-    if (spinner) {
-      spinner.fail(chalk.red(message))
-      this.spinners.delete(message)
-    }
-    if (error) {
-      const errorMessage = error instanceof Error ? error.message : error
-      console.error(chalk.red(errorMessage))
-    }
-  }
-
-  /**
-   * 信息
+   * 信息 (Info)
    */
   info(message: string): void {
     console.log(chalk.blue(message))
   }
 
   /**
-   * 警告
+   * 警告 (Warn)
    */
   warn(message: string): void {
     console.log(chalk.yellow(message))
   }
 
   /**
-   * 成功消息
+   * 成功消息 (Success message)
    */
   success(message: string): void {
     console.log(chalk.green(message))
   }
 
   /**
-   * 错误消息
+   * 错误消息 (Error message)
    */
   error(message: string): void {
     console.log(chalk.red(message))
   }
 
   /**
-   * 分节标题
+   * 分节标题 (Section title)
    */
   section(title: string): void {
     console.log('')
@@ -89,18 +61,18 @@ export class Logger {
   }
 
   /**
-   * 汇总结果
+   * 汇总结果 (Summary results)
    */
   summary(results: MigrationResults): void {
     console.log('')
-    console.log(chalk.bold.green('--- 迁移完成 ---'))
-    console.log(`工具: ${results.tools.join(', ')}`)
-    console.log(`成功: ${results.success}`)
-    console.log(`跳过: ${results.skipped}`)
-    console.log(`错误: ${results.error}`)
+    console.log(chalk.bold.green('--- 迁移完成 (Migration Complete) ---'))
+    console.log(`工具 (Tools): ${results.tools.join(', ')}`)
+    console.log(`成功 (Success): ${results.success}`)
+    console.log(`跳过 (Skipped): ${results.skipped}`)
+    console.log(`错误 (Errors): ${results.error}`)
     if (results.errors.length > 0) {
       console.log('')
-      console.log(chalk.red('错误详情:'))
+      console.log(chalk.red('错误详情 (Error details):'))
       results.errors.forEach((err) => {
         console.log(chalk.red(`  - ${err.file}: ${err.error}`))
       })
