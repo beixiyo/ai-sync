@@ -52,8 +52,8 @@ describe('path utils', () => {
     })
 
     it('should return project path for cursor commands', () => {
-      const result = getToolPath('cursor', 'commands', true, 'C:/project')
-      const expected = join('C:/project', '.cursor', 'commands')
+      const result = getToolPath('cursor', 'commands', true, '/home/user/project')
+      const expected = join('/home/user/project', '.cursor', 'commands')
       expect(result).toBe(expected)
     })
 

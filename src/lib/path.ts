@@ -129,6 +129,26 @@ export async function getMCPSourcePath(sourceDir: string): Promise<string> {
 }
 
 /**
+ * 获取 OpenCode 配置文件路径（检测 .jsonc 或 .json）
+ */
+export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
+  // 1. 优先检测 .jsonc（OpenCode 推荐格式）
+  const jsonCPath = join(basePath, 'opencode.jsonc')
+  if (await fileExists(jsonCPath)) {
+    return jsonCPath
+  }
+
+  // 2. 其次检测 .json
+  const jsonPath = join(basePath, 'opencode.json')
+  if (await fileExists(jsonPath)) {
+    return jsonPath
+  }
+
+  // 3. 都不存在时，默认返回 .jsonc
+  return jsonCPath
+}
+
+/**
  * 获取命令源路径
  */
 export async function getCommandsSourcePath(sourceDir: string): Promise<string> {

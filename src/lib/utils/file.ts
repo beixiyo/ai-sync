@@ -6,6 +6,7 @@ import type { MigrationError } from './logger'
 import { access, chmod, constants, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import TOML from '@iarna/toml'
+import stripJsonComments from 'strip-json-comments'
 
 export { readFile, writeFile }
 
@@ -140,11 +141,12 @@ export async function getMarkdownFiles(dirPath: string): Promise<string[]> {
 }
 
 /**
- * 读取 JSON 文件
+ * 读取 JSON 文件（支持 JSONC 格式）
  */
 export async function readJSONFile<T = unknown>(filePath: string): Promise<T> {
   const content = await readFile(filePath, 'utf-8')
-  return JSON.parse(content) as T
+  const cleanedContent = stripJsonComments(content)
+  return JSON.parse(cleanedContent) as T
 }
 
 /**

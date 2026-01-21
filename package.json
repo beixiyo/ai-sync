@@ -1,6 +1,6 @@
 {
   "name": "@jl-org/ai-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Migrate Commands, Skills, Rules across Cursor, Claude Code, OpenCode, and other AI CLI tools. 在 Cursor、Claude Code、OpenCode 等工具中迁移 Commands、Skills、Rules...",
   "ai-sync": {
     "configDir": "C:\\Code\\ai-sync\\test-data"
@@ -55,18 +55,19 @@
     "chalk": "^5.6.2",
     "inquirer": "^13.2.0",
     "ora": "^9.0.0",
+    "strip-json-comments": "^5.0.3",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^5.4.1",
+    "@jl-org/eslint-plugins": "^1.0.0",
     "@types/node": "^25.0.9",
     "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.17",
+    "eslint": "^9.37.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.17",
-    "eslint": "^9.37.0",
-    "@antfu/eslint-config": "^5.4.1",
-    "@jl-org/eslint-plugins": "^1.0.0"
+    "vitest": "^4.0.17"
   }
 }
