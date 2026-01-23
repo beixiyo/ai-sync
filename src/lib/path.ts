@@ -153,10 +153,17 @@ export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
  */
 export async function getCommandsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/commands')
+  const fallbackPath = resolve(sourceDir, 'commands')
+
   if (await directoryExists(claudePath)) {
     return claudePath
   }
-  return resolve(sourceDir, 'commands')
+  if (await directoryExists(fallbackPath)) {
+    return fallbackPath
+  }
+
+  /** 默认返回 .claude/commands，这样报错信息会更符合 README 说明 */
+  return claudePath
 }
 
 /**
@@ -164,10 +171,17 @@ export async function getCommandsSourcePath(sourceDir: string): Promise<string> 
  */
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/skills')
+  const fallbackPath = resolve(sourceDir, 'skills')
+
   if (await directoryExists(claudePath)) {
     return claudePath
   }
-  return resolve(sourceDir, 'skills')
+  if (await directoryExists(fallbackPath)) {
+    return fallbackPath
+  }
+
+  /** 默认返回 .claude/skills */
+  return claudePath
 }
 
 /**

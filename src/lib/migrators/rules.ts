@@ -35,6 +35,10 @@ export class RulesMigrator extends BaseMigrator {
       isSourceFile = sourceStats.isFile()
     }
     catch (error) {
+      if (error instanceof Error && (error as any).code === 'ENOENT') {
+        /** 源不存在，视为正常跳过 (Source not found, treat as normal skip) */
+        return results
+      }
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unknown error'

@@ -13,10 +13,8 @@
 <div align="center">
   <a href="./README.md">中文</a>
   <span>|</span>
-  <a href="./README.md#ai-tool-configuration-sync">English</a>
+  <a href="./README.en.md">English</a>
 </div>
-
-[English](#ai-tool-configuration-sync)
 
 自动化将 Claude 配置迁移到不同 AI IDE 工具的脚本
 
@@ -51,6 +49,30 @@ npm i -g @jl-org/ai-sync
 ai-sync
 # 查看帮助
 ai-sync --help
+```
+
+```bash
+? 选择要迁移到的工具（使用方向键导航，空格选择，回车确认）：
+ ◯  Cursor
+ ⬤  Claude Code
+ ⬤  OpenCode
+ ◯  Gemini CLI
+ ◯  IFlow CLI
+
+? 配置到当前项目（否则为全局配置）？ (y/N) n
+? 是否自动覆盖已存在的文件？ (y/N) y
+
+开始迁移...
+✓ 迁移 Commands... (2/2)
+✓ 迁移 Skills... (1/1)
+✓ 迁移 Rules... (1/1)
+✓ 迁移 MCP... (1/1)
+
+--- 迁移完成 ---
+工具: Claude Code, OpenCode
+成功: 15
+跳过: 3
+错误: 0
 ```
 
 ## 自定义配置
@@ -109,116 +131,3 @@ export default defineConfig({
 - **路径解析**：支持使用 `~` 表示用户主目录，自动处理跨平台路径
 - **默认目录**：默认使用家目录 `~` 作为配置探测起点，优先查找 `~/.claude`
 - **指定路径**：支持通过命令行参数或配置文件指定自定义的源目录和目标项目目录
-
-
-# AI Tool Configuration Sync
-
-<div align="center">
-  <img alt="npm-version" src="https://img.shields.io/npm/v/@jl-org/ai-sync?color=red&logo=npm" />
-  <img alt="npm-download" src="https://img.shields.io/npm/dm/@jl-org/ai-sync?logo=npm" />
-  <img alt="License" src="https://img.shields.io/npm/l/@jl-org/ai-sync?color=blue" />
-  <img alt="typescript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
-  <img alt="node.js" src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" />
-  <img alt="vitest" src="https://img.shields.io/badge/Vitest-646CFF?logo=vitest&logoColor=white" />
-  <img alt="tsup" src="https://img.shields.io/badge/tsup-161B22?logo=tsup&logoColor=white" />
-</div>
-
-<div align="center">
-  <a href="./README.md#ai-工具配置迁移">中文</a>
-  <span>|</span>
-  <a href="./README.md">English</a>
-</div>
-
-[中文](#ai-工具配置迁移)
-
-Automated script to migrate Claude configurations to different AI IDE tools
-
-## Supported Tools
-
-- Cursor
-- Claude Code
-- OpenCode
-- CodeX
-- Gemini CLI
-- IFlow CLI
-
-## Quick Start
-
-### 1. Prepare Configuration
-
-**Follow Claude Code Configuration Specification** https://code.claude.com/docs/settings
-
-Create `~/.claude` directory with the following subdirectories:
-- `~/.claude/commands/` - Custom commands (Markdown format)
-- `~/.claude/skills/` - Skill modules (Markdown format)
-- `~/.claude/CLAUDE.md` | `.cursor/rules/*.mdc` - IDE rules
-  > If `AGENTS.md`, `AGENT.md`, or `CLAUDE.md` exist, they will be prioritized for rules sync, followed by `.cursor/rules` in the specified priority order
-- `~/.claude.json` - MCP configuration file
-
-### 2. Quick Start
-
-```bash
-npm i -g @jl-org/ai-sync
-
-# Interactive execution
-ai-sync
-# View help
-ai-sync --help
-```
-
-## Custom Configuration
-
-You can deeply customize the sync behavior by creating an `ai-sync.config.js` file in the project root directory
-
-### 1. Using `defineConfig`
-
-With `defineConfig`, you can define new tool configurations or modify existing tool sync logic:
-
-```typescript
-import { defineConfig } from '@jl-org/ai-sync'
-
-export default defineConfig({
-  tools: {
-    // Define a new tool: test-cli
-    'test-cli': {
-      name: 'Test CLI',
-      // Supported configuration types
-      supported: ['commands', 'skills', 'rules', 'mcp'],
-      // Specific transformation logic
-      commands: {
-        source: '.test-cli/commands',
-        format: 'markdown',
-        target: '~/.test-cli/commands',
-      },
-      rules: {
-        source: '.test-cli/rules',
-        target: '~/.test-cli/RULES.md',
-        // Enable merge mode: merge multiple rules into a single file
-        merge: true,
-        // Highly customizable transformation logic
-        transform: (content, fileName) => {
-          return `${content}\n\n> Generated from ${fileName}`
-        }
-      }
-    }
-  }
-})
-```
-
-## Execution Rules
-
-### Configuration Transformation Rules
-
-| Configuration Type | Transformation Description |
-|-------------------|---------------------------|
-| **Commands** | Claude → Cursor/OpenCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion |
-| **Skills** | All tools: Direct copy |
-| **Rules** | Cursor → Other tools: .mdc files merged into single Markdown<br>Other tools → Cursor: Maintain multi-file structure |
-| **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow: Automatic format conversion |
-
-### Path Rules
-
-- **Tool Configuration**: Unified use of global Home directory configuration paths, such as `~/.cursor/`, `~/.claude/`
-- **Path Resolution**: Support using `~` to represent the user's home directory, automatically handles cross-platform paths
-- **Default Directory**: Default to using home directory `~` as the configuration detection starting point, prioritizing `~/.claude`
-- **Specified Path**: Support specifying custom source and target project directories through command-line parameters or configuration files

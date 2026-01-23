@@ -68,7 +68,9 @@ export async function copyFileSafe(
     return { success: true, skipped: false, error: null }
   }
   catch (error) {
-    return { success: false, skipped: false, error: error instanceof Error ? error : new Error(String(error)) }
+    return { success: false, skipped: false, error: error instanceof Error
+      ? error
+      : new Error(String(error)) }
   }
 }
 
@@ -112,8 +114,14 @@ export async function copyDirectory(
     }
   }
   catch (error) {
+    /** 如果目录不存在，视为跳过，不记为错误 (If directory not found, treat as skipped, not an error) */
+    if (error instanceof Error && (error as any).code === 'ENOENT') {
+      return results
+    }
     results.error++
-    results.errors.push({ file: sourceDir, error: error instanceof Error ? error.message : 'Unknown error' })
+    results.errors.push({ file: sourceDir, error: error instanceof Error
+      ? error.message
+      : 'Unknown error' })
   }
 
   return results
@@ -134,7 +142,13 @@ export async function getMarkdownFiles(dirPath: string): Promise<string[]> {
     }
   }
   catch (error) {
-    console.error(`读取目录失败: ${dirPath}`, error instanceof Error ? error.message : 'Unknown error')
+    /** 忽略目录不存在的错误 (Ignore directory not found error) */
+    if (error instanceof Error && (error as any).code === 'ENOENT') {
+      return []
+    }
+    console.error(`读取目录失败: ${dirPath}`, error instanceof Error
+      ? error.message
+      : 'Unknown error')
   }
 
   return files
