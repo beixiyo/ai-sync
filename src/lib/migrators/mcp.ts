@@ -1,5 +1,6 @@
 import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig, ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
+import { dirname } from 'node:path'
 import chalk from 'chalk'
 import { getOpenCodeMCPPath } from '../path'
 import { fileExists, readJSONFile, readTOMLFile, writeJSONFile, writeTOMLFile } from '../utils/file'
@@ -19,7 +20,7 @@ export class MCPMigrator extends BaseMigrator {
   protected async migrateForTool(tool: ToolKey, targetPath: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
     const actualTargetPath = tool === 'opencode'
-      ? await getOpenCodeMCPPath(targetPath.substring(0, targetPath.lastIndexOf('/')))
+      ? await getOpenCodeMCPPath(dirname(targetPath))
       : targetPath
 
     try {
@@ -35,13 +36,22 @@ export class MCPMigrator extends BaseMigrator {
 
       const converted = this.convertMCPConfig(sourceContent, tool)
 
-      for (const key in converted) {
-        const value = converted[key]
-        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-          targetConfig[key] = { ...(targetConfig[key] || {}), ...value }
+      if (this.options.autoOverwrite) {
+        /** 如果是自动覆盖模式，直接替换关键配置项 (If auto-overwrite, replace key config items directly) */
+        for (const key in converted) {
+          targetConfig[key] = converted[key]
         }
-        else {
-          targetConfig[key] = value
+      }
+      else {
+        /** 否则执行深度合并 (Otherwise perform deep merge) */
+        for (const key in converted) {
+          const value = converted[key]
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            targetConfig[key] = { ...(targetConfig[key] || {}), ...value }
+          }
+          else {
+            targetConfig[key] = value
+          }
         }
       }
 

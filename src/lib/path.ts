@@ -4,7 +4,7 @@
 
 import type { ConfigType, ToolKey } from './config'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { directoryExists, fileExists } from './utils/file'
 
 /**
@@ -99,7 +99,7 @@ export async function resolveSourceDir(
   if (providedSourceDir) {
     const resolvedPath = resolve(expandHome(providedSourceDir))
     /** 如果指向的是 .claude 目录，返回其父目录作为 Root */
-    if (resolvedPath.endsWith('.claude') || resolvedPath.endsWith('.claude/') || resolvedPath.endsWith('.claude\\')) {
+    if (basename(resolvedPath) === '.claude') {
       return dirname(resolvedPath)
     }
     return resolvedPath

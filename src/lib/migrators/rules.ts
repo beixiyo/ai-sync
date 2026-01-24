@@ -5,7 +5,7 @@
 import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { readdir, stat } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import chalk from 'chalk'
 import { markdownToMdc } from '../converters/markdown-to-mdc'
 import { mergeRules } from '../converters/rules-merger'
@@ -96,8 +96,8 @@ export class RulesMigrator extends BaseMigrator {
     const toolConfig = this.tools[tool]
     if (this.options.isProject) {
       const basePath = this.getTargetDir(tool)
-      const fileName = toolConfig.rules.target?.split('/').pop() || ''
-      return resolve(basePath, '../', fileName)
+      const fileName = basename(toolConfig.rules.target || '')
+      return resolve(basePath, '..', fileName)
     }
     else {
       return expandHome(toolConfig.rules.target || '')
@@ -154,7 +154,39 @@ export class RulesMigrator extends BaseMigrator {
    * 单个文件迁移
    */
   private async migrateSingleFile(tool: ToolKey, results: MigrationStats): Promise<void> {
-    const targetFile = this.getTargetFilePath(tool)
+    let targetFile = this.getTargetFilePath(tool)
+
+    /** 如果目标是 Cursor，特殊处理：转换 .md 为 .mdc 并放入 rules 目录 */
+    if (tool === 'cursor') {
+      const fileName = basename(this.sourceDir).replace(/\.md$/, '.mdc')
+      targetFile = join(targetFile, fileName)
+
+      if (await fileExists(targetFile) && !this.options.autoOverwrite) {
+        console.log(chalk.yellow(`⚠ 跳过 Rules 文件 (${tool}): 文件已存在 (Skip Rules file (${tool}): File already exists)`))
+        results.skipped++
+        return
+      }
+
+      try {
+        const success = await markdownToMdc(this.sourceDir, targetFile)
+        if (success) {
+          console.log(chalk.green(`✓ 转换 Rules 文件 → ${tool} (Convert Rules file → ${tool})`))
+          results.success++
+        }
+        else {
+          throw new Error('转换失败 (Conversion failed)')
+        }
+      }
+      catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error'
+        console.error(chalk.red(`✗ 转换 Rules 文件失败 (${tool})`), errorMessage)
+        results.error++
+        results.errors.push({ file: targetFile, error: errorMessage })
+      }
+      return
+    }
 
     try {
       const copyResult = await copyFileSafe(this.sourceDir, targetFile, this.options.autoOverwrite)
@@ -162,9 +194,15 @@ export class RulesMigrator extends BaseMigrator {
         console.log(chalk.green(`✓ 复制 Rules 文件 → ${tool} (Copy Rules file → ${tool})`))
         results.success++
       }
-      else {
+      else if (copyResult.skipped) {
         console.log(chalk.yellow(`⚠ 跳过 Rules 文件 (${tool}): 文件已存在 (Skip Rules file (${tool}): File already exists)`))
         results.skipped++
+      }
+      else {
+        const errorMessage = copyResult.error?.message || 'Unknown error'
+        console.error(chalk.red(`✗ 复制 Rules 文件失败 (${tool}) (Copy Rules file failed (${tool}))`), errorMessage)
+        results.error++
+        results.errors.push({ file: targetFile, error: errorMessage })
       }
     }
     catch (error) {

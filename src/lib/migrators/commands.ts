@@ -9,7 +9,7 @@ import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import chalk from 'chalk'
 import { convertMarkdownToTOML } from '../converters/markdown-to-toml'
-import { copyDirectory, getMarkdownFiles, readFile, writeFile } from '../utils/file'
+import { copyDirectory, fileExists, getMarkdownFiles, readFile, writeFile } from '../utils/file'
 import { BaseMigrator } from './base'
 
 /**
@@ -63,6 +63,11 @@ export class CommandsMigrator extends BaseMigrator {
       const sourcePath = join(this.sourceDir, file)
       const targetPath = join(targetDir, file)
 
+      if (await fileExists(targetPath) && !this.options.autoOverwrite) {
+        results.skipped++
+        continue
+      }
+
       try {
         const content = await readFile(sourcePath, 'utf-8')
         const transformed = await transform(content, file)
@@ -99,6 +104,11 @@ export class CommandsMigrator extends BaseMigrator {
     for (const file of files) {
       const sourcePath = join(this.sourceDir, file)
       const targetPath = join(targetDir, file.replace('.md', '.toml'))
+
+      if (await fileExists(targetPath) && !this.options.autoOverwrite) {
+        results.skipped++
+        continue
+      }
 
       try {
         await convertMarkdownToTOML(sourcePath, targetPath)

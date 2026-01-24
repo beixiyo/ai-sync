@@ -36,8 +36,7 @@ Automated script to migrate Claude configurations to different AI IDE tools
 Create `~/.claude` directory with the following subdirectories:
 - `~/.claude/commands/` - Custom commands (Markdown format)
 - `~/.claude/skills/` - Skill modules (Markdown format)
-- `~/.claude/CLAUDE.md` | `.cursor/rules/*.mdc` - IDE rules
-  > If `AGENTS.md`, `AGENT.md`, or `CLAUDE.md` exist, they will be prioritized for rules sync, followed by `.cursor/rules` in the specified priority order
+- `~/.claude/{CLAUDE.md,AGENTS.md}` - IDE rules
 - `~/.claude.json` - MCP configuration file
 
 ### 2. Quick Start
@@ -129,5 +128,5 @@ export default defineConfig({
 
 - **Tool Configuration**: Unified use of global Home directory configuration paths, such as `~/.cursor/`, `~/.claude/`
 - **Path Resolution**: Support using `~` to represent the user's home directory, automatically handles cross-platform paths
-- **Default Directory**: Default to using home directory `~` as the configuration detection starting point, prioritizing `~/.claude`
+- **Default Directory**: Default to using home directory `~` as the configuration detection starting point, with `~/.claude` as the sole configuration standard
 - **Specified Path**: Support specifying custom source and target project directories through command-line parameters or configuration files

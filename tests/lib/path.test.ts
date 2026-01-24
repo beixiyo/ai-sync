@@ -46,39 +46,33 @@ describe('path utils', () => {
 
   describe('getToolPath', () => {
     it('should return global path for cursor commands', () => {
-      const result = getToolPath('cursor', 'commands', false, '')
-      const expected = join('/home/user', '.cursor', 'commands')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('cursor', 'commands', false, '')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.cursor/commands')
     })
 
     it('should return project path for cursor commands', () => {
-      const result = getToolPath('cursor', 'commands', true, '/home/user/project')
-      const expected = join('/home/user/project', '.cursor', 'commands')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('cursor', 'commands', true, '/home/user/project')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/project/.cursor/commands')
     })
 
     it('should return global path for claude skills', () => {
-      const result = getToolPath('claude', 'skills', false, '')
-      const expected = join('/home/user', '.claude', 'skills')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('claude', 'skills', false, '')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.claude/skills')
     })
 
     it('should return global path for opencode rules', () => {
-      const result = getToolPath('opencode', 'rules', false, '')
-      const expected = join('/home/user', '.config/opencode', 'rules')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('opencode', 'rules', false, '')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.config/opencode/rules')
     })
 
     it('should return global path for gemini commands', () => {
-      const result = getToolPath('gemini', 'commands', false, '')
-      const expected = join('/home/user', '.gemini', 'commands')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('gemini', 'commands', false, '')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.gemini/commands')
     })
 
     it('should return global path for iflow skills', () => {
-      const result = getToolPath('iflow', 'skills', false, '')
-      const expected = join('/home/user', '.iflow', 'skills')
-      expect(result).toBe(expected)
+      const result = normalizePath(getToolPath('iflow', 'skills', false, '')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.iflow/skills')
     })
   })
 })
