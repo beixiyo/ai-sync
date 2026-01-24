@@ -7,7 +7,6 @@
 
 import type { ConfigType, ToolConfig, ToolKey } from './lib/config'
 import type { BaseMigrator } from './lib/migrators/base'
-import type { MigrateOptions } from './lib/migrators/types'
 import type { MigrationResults } from './lib/utils/logger'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -38,6 +37,7 @@ function printHelp(): void {
   console.log('选项 (Options):')
   console.log('  -s, --source <dir>     源目录 (Source directory)（默认：~）')
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
+  console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,rules,mcp）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
   console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
   console.log('  -h, --help             显示帮助信息 (Show help)')
@@ -58,7 +58,7 @@ function printHelp(): void {
 /**
  * 交互式模式
  */
-async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CONFIG.tools as Record<ToolKey, ToolConfig>): Promise<MigrateOptions & { sourceDir?: string, tools: ToolKey[] }> {
+async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CONFIG.tools as Record<ToolKey, ToolConfig>): Promise<CommandLineOptions> {
   const logger = new Logger()
 
   logger.section('IDE Rules 迁移向导 (IDE Rules Migration Wizard)')
@@ -72,17 +72,39 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
     },
   ])
 
+  const toolChoices = getToolChoiceList(tools)
   const { tools: selectedTools } = await inquirer.prompt<InteractiveAnswers>([
     {
       type: 'checkbox',
       name: 'tools',
-      message: '目标工具 (Target Tools):',
-      choices: getToolChoiceList(tools),
+      message: '请选择要迁移的目标工具 (默认全选，可取消勾选不需要的工具) [Select target tools (uncheck to skip)]:',
+      choices: toolChoices,
+      default: toolChoices.map(c => c.value),
     },
   ])
 
   if (selectedTools.length === 0) {
     console.log(chalk.yellow('未选择任何工具，退出。(No tools selected, exiting.)'))
+    process.exit(0)
+  }
+
+  const { configTypes: selectedTypes } = await inquirer.prompt<InteractiveAnswers>([
+    {
+      type: 'checkbox',
+      name: 'configTypes',
+      message: '选择要迁移的配置类型 [Select configuration types to migrate]:',
+      choices: [
+        { name: 'Commands (命令/提示词)', value: 'commands' },
+        { name: 'Skills (技能/工具)', value: 'skills' },
+        { name: 'Rules (规则/指令)', value: 'rules' },
+        { name: 'MCP (模型上下文协议)', value: 'mcp' },
+      ],
+      default: ['commands', 'skills', 'rules', 'mcp'],
+    },
+  ])
+
+  if (selectedTypes.length === 0) {
+    console.log(chalk.yellow('未选择任何配置类型，退出。(No config types selected, exiting.)'))
     process.exit(0)
   }
 
@@ -97,6 +119,7 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
 
   return {
     tools: selectedTools,
+    configTypes: selectedTypes,
     autoOverwrite: overwrite,
     sourceDir,
   }
@@ -110,6 +133,7 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
     options: {
       source: { type: 'string', short: 's' },
       target: { type: 'string', short: 't' },
+      type: { type: 'string' },
       config: { type: 'string', short: 'c' },
       yes: { type: 'boolean', short: 'y' },
       help: { type: 'boolean', short: 'h' },
@@ -130,7 +154,12 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   let tools: ToolKey[] = []
   if (values.target) {
     /** 处理空格或逗号分隔的工具列表 */
-    tools = values.target.split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
+    tools = (values.target as string).split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
+  }
+
+  let configTypes: ConfigType[] | undefined
+  if (values.type) {
+    configTypes = (values.type as string).split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ConfigType[]
   }
 
   const autoOverwrite = values.yes || false
@@ -141,6 +170,7 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 
   return {
     tools,
+    configTypes,
     autoOverwrite,
     sourceDir,
     config,
@@ -195,7 +225,7 @@ async function main(): Promise<void> {
     tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
   }
 
-  const configTypes: ConfigType[] = ['commands', 'skills', 'rules', 'mcp']
+  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'rules', 'mcp']
 
   for (const configType of configTypes) {
     const supportedTools = options.tools.filter(supportedTool => isConfigTypeSupported(supportedTool, configType, toolsConfig))
@@ -267,6 +297,7 @@ main().catch((error) => {
  */
 interface CommandLineOptions {
   tools: ToolKey[]
+  configTypes?: ConfigType[]
   autoOverwrite: boolean
   sourceDir: string | undefined
   config?: string
@@ -277,6 +308,7 @@ interface CommandLineOptions {
  */
 interface InteractiveAnswers {
   tools: ToolKey[]
+  configTypes: ConfigType[]
   overwrite: boolean
   sourceDir?: string
 }
