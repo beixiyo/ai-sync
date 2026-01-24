@@ -23,8 +23,6 @@ export function expandHome(filepath: string): string {
 export function getToolPath(
   tool: ToolKey,
   configType: ConfigType,
-  isProject: boolean = false,
-  projectDir: string = '',
 ): string {
   const paths: Record<ToolKey, string> = {
     cursor: '~/.cursor',
@@ -37,12 +35,7 @@ export function getToolPath(
 
   /** 为自定义工具提供默认路径 */
   const toolPath = paths[tool as string] || `~/.${tool}`
-
-  const basePath = isProject
-    ? resolve(projectDir, toolPath.startsWith('~/')
-        ? toolPath.slice(2)
-        : toolPath)
-    : expandHome(toolPath)
+  const basePath = expandHome(toolPath)
 
   /** 为 OpenCode 特殊处理路径，保持 command/skill 的单数形式 */
   if (tool === 'opencode') {

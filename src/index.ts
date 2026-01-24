@@ -39,8 +39,6 @@ function printHelp(): void {
   console.log('  -s, --source <dir>     源目录 (Source directory)（默认：~）')
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
-  console.log('  -p, --project          配置目录为项目级 (Config directory is project-level)')
-  console.log('  -d, --project-dir <dir> 配置目录路径 (Config directory path)')
   console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
   console.log('  -h, --help             显示帮助信息 (Show help)')
   console.log('  --interactive          强制交互模式 (Force interactive mode)（默认）\n')
@@ -54,8 +52,7 @@ function printHelp(): void {
   console.log('示例 (Examples):')
   console.log('  pnpm migrate                    # 交互式模式 (Interactive mode)')
   console.log('  pnpm migrate -t cursor          # 迁移到 Cursor (Migrate to Cursor)')
-  console.log('  pnpm migrate -t cursor,claude   # 迁移到多个工具 (Migrate to multiple tools)')
-  console.log('  pnpm migrate -p -d /path/to/project  # 项目级配置 (Project-level configuration)')
+  console.log('  pnpm migrate -t cursor,claude   # 迁移到多个工具 (Migrate to multiple tools)\n')
 }
 
 /**
@@ -89,29 +86,6 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
     process.exit(0)
   }
 
-  const { isGlobal } = await inquirer.prompt<InteractiveAnswers>([
-    {
-      type: 'confirm',
-      name: 'isGlobal',
-      message: '安装到全局目录？(Install to global directory?)',
-      default: true,
-    },
-  ])
-
-  const isProject = !isGlobal
-  let projectDir = process.cwd()
-  if (isProject) {
-    const { inputDir } = await inquirer.prompt<InteractiveAnswers>([
-      {
-        type: 'input',
-        name: 'inputDir',
-        message: '项目路径 (Project Path):',
-        default: process.cwd(),
-      },
-    ])
-    projectDir = resolve(inputDir!)
-  }
-
   const { overwrite } = await inquirer.prompt<InteractiveAnswers>([
     {
       type: 'confirm',
@@ -123,8 +97,6 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
 
   return {
     tools: selectedTools,
-    isProject,
-    projectDir,
     autoOverwrite: overwrite,
     sourceDir,
   }
@@ -136,14 +108,12 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
 async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   const { values, positionals } = parseArgs({
     options: {
-      'source': { type: 'string', short: 's' },
-      'target': { type: 'string', short: 't' },
-      'config': { type: 'string', short: 'c' },
-      'project': { type: 'boolean', short: 'p' },
-      'project-dir': { type: 'string', short: 'd' },
-      'yes': { type: 'boolean', short: 'y' },
-      'help': { type: 'boolean', short: 'h' },
-      'interactive': { type: 'boolean' },
+      source: { type: 'string', short: 's' },
+      target: { type: 'string', short: 't' },
+      config: { type: 'string', short: 'c' },
+      yes: { type: 'boolean', short: 'y' },
+      help: { type: 'boolean', short: 'h' },
+      interactive: { type: 'boolean' },
     },
     allowPositionals: true,
   })
@@ -163,10 +133,6 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
     tools = values.target.split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
   }
 
-  const isProject = values.project || false
-  const projectDir = values['project-dir']
-    ? resolve(values['project-dir'])
-    : process.cwd()
   const autoOverwrite = values.yes || false
   const sourceDir = values.source
     ? resolve(expandHome(values.source))
@@ -175,8 +141,6 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 
   return {
     tools,
-    isProject,
-    projectDir,
     autoOverwrite,
     sourceDir,
     config,
@@ -218,9 +182,6 @@ async function main(): Promise<void> {
   logger.section('开始迁移 (Start Migration)')
   console.log(chalk.cyan(`源目录 (Source directory): ${sourceDir}`))
   console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map(t => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
-  console.log(chalk.cyan(`配置目录 (Config directory): ${options.isProject
-    ? `项目 (${options.projectDir})`
-    : '全局 (Global)'}`))
   console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${options.autoOverwrite
     ? '是 (Yes)'
     : '否 (No)'}`))
@@ -306,8 +267,6 @@ main().catch((error) => {
  */
 interface CommandLineOptions {
   tools: ToolKey[]
-  isProject: boolean
-  projectDir: string
   autoOverwrite: boolean
   sourceDir: string | undefined
   config?: string
@@ -318,9 +277,6 @@ interface CommandLineOptions {
  */
 interface InteractiveAnswers {
   tools: ToolKey[]
-  isProject: boolean
-  isGlobal: boolean
-  inputDir?: string
   overwrite: boolean
   sourceDir?: string
 }

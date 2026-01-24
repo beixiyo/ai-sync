@@ -69,8 +69,6 @@ export abstract class BaseMigrator {
     return getToolPath(
       tool,
       this.configType,
-      this.options.isProject,
-      this.options.projectDir,
     )
   }
 

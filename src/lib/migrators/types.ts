@@ -4,8 +4,6 @@ import type { MigrationError } from '../utils/logger'
  * 迁移选项
  */
 export interface MigrateOptions {
-  isProject: boolean
-  projectDir: string
   autoOverwrite: boolean
   sourceDir?: string
 }

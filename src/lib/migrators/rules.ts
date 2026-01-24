@@ -5,7 +5,7 @@
 import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { readdir, stat } from 'node:fs/promises'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import chalk from 'chalk'
 import { markdownToMdc } from '../converters/markdown-to-mdc'
 import { mergeRules } from '../converters/rules-merger'
@@ -86,14 +86,7 @@ export class RulesMigrator extends BaseMigrator {
    */
   private getTargetFilePath(tool: ToolKey): string {
     const toolConfig = this.tools[tool]
-    if (this.options.isProject) {
-      const basePath = this.getTargetDir(tool)
-      const fileName = basename(toolConfig.rules.target || '')
-      return resolve(basePath, '..', fileName)
-    }
-    else {
-      return expandHome(toolConfig.rules.target || '')
-    }
+    return expandHome(toolConfig.rules.target || '')
   }
 
   /**

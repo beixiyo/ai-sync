@@ -46,32 +46,27 @@ describe('path utils', () => {
 
   describe('getToolPath', () => {
     it('should return global path for cursor commands', () => {
-      const result = normalizePath(getToolPath('cursor', 'commands', false, '')).replace(/^[A-Z]:/, '')
+      const result = normalizePath(getToolPath('cursor', 'commands')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.cursor/commands')
     })
 
-    it('should return project path for cursor commands', () => {
-      const result = normalizePath(getToolPath('cursor', 'commands', true, '/home/user/project')).replace(/^[A-Z]:/, '')
-      expect(result).toBe('/home/user/project/.cursor/commands')
-    })
-
     it('should return global path for claude skills', () => {
-      const result = normalizePath(getToolPath('claude', 'skills', false, '')).replace(/^[A-Z]:/, '')
+      const result = normalizePath(getToolPath('claude', 'skills')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.claude/skills')
     })
 
     it('should return global path for opencode rules', () => {
-      const result = normalizePath(getToolPath('opencode', 'rules', false, '')).replace(/^[A-Z]:/, '')
+      const result = normalizePath(getToolPath('opencode', 'rules')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.config/opencode/rules')
     })
 
     it('should return global path for gemini commands', () => {
-      const result = normalizePath(getToolPath('gemini', 'commands', false, '')).replace(/^[A-Z]:/, '')
+      const result = normalizePath(getToolPath('gemini', 'commands')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.gemini/commands')
     })
 
     it('should return global path for iflow skills', () => {
-      const result = normalizePath(getToolPath('iflow', 'skills', false, '')).replace(/^[A-Z]:/, '')
+      const result = normalizePath(getToolPath('iflow', 'skills')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.iflow/skills')
     })
   })

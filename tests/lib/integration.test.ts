@@ -7,16 +7,23 @@ import { MCPMigrator } from '@lib/migrators/mcp'
 import { RulesMigrator } from '@lib/migrators/rules'
 import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, fileExists, removeDirectory } from '@lib/utils/file'
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /** 测试配置 */
 const testSourceDir = join(process.cwd(), 'test-data')
 const testTargetDir = join(process.cwd(), 'test-output')
 
+/** Mock os module to redirect home directory to test-output */
+vi.mock('node:os', async () => {
+  const actual = await vi.importActual('node:os') as any
+  return {
+    ...actual,
+    homedir: () => testTargetDir,
+  }
+})
+
 /** 测试选项 */
 const testOptions = {
-  isProject: true,
-  projectDir: testTargetDir,
   autoOverwrite: true,
 }
 
