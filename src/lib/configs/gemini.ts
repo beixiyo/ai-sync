@@ -13,7 +13,7 @@ export const geminiConfig: ToolConfig = {
     target: '~/.gemini/skills',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'markdown',
     target: '~/.gemini/GEMINI.md',
     merge: true,

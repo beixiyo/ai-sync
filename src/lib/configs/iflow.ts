@@ -13,7 +13,7 @@ export const iflowConfig: ToolConfig = {
     target: '~/.iflow/skills',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'markdown',
     target: '~/.iflow/IFLOW.md',
     merge: true,

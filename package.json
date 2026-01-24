@@ -27,6 +27,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/index.ts",
+    "help": "tsx src/index.ts --help",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "lint": "eslint . --fix --quiet",

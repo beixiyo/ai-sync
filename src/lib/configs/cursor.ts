@@ -12,7 +12,7 @@ export const cursorConfig: ToolConfig = {
     target: '~/.cursor/skills',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'mdc',
     target: '~/.cursor/rules',
   },

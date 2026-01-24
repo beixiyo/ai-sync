@@ -12,7 +12,7 @@ export const codexConfig: ToolConfig = {
     target: '~/.codex/skills',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'markdown',
     target: '~/.codex/AGENTS.md',
     merge: true,

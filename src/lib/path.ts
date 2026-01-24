@@ -5,7 +5,7 @@
 import type { ConfigType, ToolKey } from './config'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { directoryExists, fileExists } from './utils/file'
+import { fileExists } from './utils/file'
 
 /**
  * 展开家目录路径
@@ -93,7 +93,7 @@ export function normalizePath(filepath: string): string {
  */
 export async function resolveSourceDir(
   providedSourceDir: string | undefined,
-  defaultConfigDir: string,
+  _defaultConfigDir: string,
 ): Promise<string> {
   // 1. 如果提供了源目录，直接使用
   if (providedSourceDir) {
@@ -105,7 +105,7 @@ export async function resolveSourceDir(
     return resolvedPath
   }
 
-  // 2. 默认使用家目录
+  // 2. 默认使用家目录中的 .claude 所在目录
   return homedir()
 }
 
@@ -113,15 +113,10 @@ export async function resolveSourceDir(
  * 获取 MCP 源路径（统一使用 .claude.json）
  */
 export async function getMCPSourcePath(sourceDir: string): Promise<string> {
+  /** 优先从 .claude.json 读取 */
   const filePath = resolve(sourceDir, '.claude.json')
   if (await fileExists(filePath)) {
     return filePath
-  }
-
-  /** 兼容 .claude/.claude.json */
-  const nestedPath = resolve(sourceDir, '.claude', '.claude.json')
-  if (await fileExists(nestedPath)) {
-    return nestedPath
   }
 
   /** 默认返回第一个，用于后续错误展示 */
@@ -153,16 +148,6 @@ export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
  */
 export async function getCommandsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/commands')
-  const fallbackPath = resolve(sourceDir, 'commands')
-
-  if (await directoryExists(claudePath)) {
-    return claudePath
-  }
-  if (await directoryExists(fallbackPath)) {
-    return fallbackPath
-  }
-
-  /** 默认返回 .claude/commands，这样报错信息会更符合 README 说明 */
   return claudePath
 }
 
@@ -171,38 +156,19 @@ export async function getCommandsSourcePath(sourceDir: string): Promise<string> 
  */
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/skills')
-  const fallbackPath = resolve(sourceDir, 'skills')
-
-  if (await directoryExists(claudePath)) {
-    return claudePath
-  }
-  if (await directoryExists(fallbackPath)) {
-    return fallbackPath
-  }
-
-  /** 默认返回 .claude/skills */
   return claudePath
 }
 
 /**
  * 获取规则源路径（按照优先级检测）
  * 优先级顺序：
- * 1. 根目录下的 AGENTS.md、AGENT.md、CLAUDE.md 文件
- * 2. .claude/ 目录下的 AGENTS.md、AGENT.md、CLAUDE.md 文件
- * 3. .cursor/rules 目录
+ * 1. .claude/ 目录下的 CLAUDE.md, AGENTS.md 文件
+ * 2. 根目录下的 CLAUDE.md, AGENTS.md 文件
  */
 export async function getRuleSourcePath(sourceDir: string): Promise<string> {
-  // 1. 检测根目录下的优先级文件
-  const priorityFiles = ['AGENTS.md', 'AGENT.md', 'CLAUDE.md']
+  // 1. 优先检测 .claude/ 目录
+  const priorityFiles = ['CLAUDE.md', 'AGENTS.md']
 
-  for (const fileName of priorityFiles) {
-    const filePath = resolve(sourceDir, fileName)
-    if (await fileExists(filePath)) {
-      return filePath
-    }
-  }
-
-  // 2. 检测 .claude/ 目录下的优先级文件
   for (const fileName of priorityFiles) {
     const filePath = resolve(sourceDir, '.claude', fileName)
     if (await fileExists(filePath)) {
@@ -210,12 +176,14 @@ export async function getRuleSourcePath(sourceDir: string): Promise<string> {
     }
   }
 
-  // 3. 检测 .cursor/rules 目录作为后备
-  const cursorRulesDir = resolve(sourceDir, '.cursor/rules')
-  if (await directoryExists(cursorRulesDir)) {
-    return cursorRulesDir
+  // 2. 检测根目录
+  for (const fileName of priorityFiles) {
+    const filePath = resolve(sourceDir, fileName)
+    if (await fileExists(filePath)) {
+      return filePath
+    }
   }
 
-  // 4. 默认使用 .cursor/rules 目录
-  return cursorRulesDir
+  /** 默认返回 .claude/CLAUDE.md */
+  return resolve(sourceDir, '.claude', 'CLAUDE.md')
 }

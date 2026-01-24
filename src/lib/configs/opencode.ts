@@ -12,7 +12,7 @@ export const opencodeConfig: ToolConfig = {
     target: '~/.config/opencode/skill',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'markdown',
     target: '~/.config/opencode/AGENTS.md',
     merge: true,

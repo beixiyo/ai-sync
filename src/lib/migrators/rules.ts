@@ -77,16 +77,8 @@ export class RulesMigrator extends BaseMigrator {
       return
     }
 
-    /** 检查是否需要格式转换 (claude -> cursor) */
-    const needsConversion = this.sourceDir.endsWith('.claude') && tool === 'cursor'
-
-    if (needsConversion) {
-      await this.copyWithConversion(this.sourceDir, targetDir, results)
-    }
-    else {
-      const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
-      this.sumStats(results, stats)
-    }
+    const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
+    this.sumStats(results, stats)
   }
 
   /**
@@ -252,66 +244,6 @@ export class RulesMigrator extends BaseMigrator {
             results.errors.push({ file: entry.name, error: error instanceof Error
               ? error.message
               : '转换失败 (Conversion failed)' })
-          }
-        }
-      }
-    }
-    catch (error) {
-      results.error++
-      results.errors.push({ file: sourceDir, error: error instanceof Error
-        ? error.message
-        : 'Unknown error' })
-    }
-  }
-
-  /**
-   * 递归转换 (MD -> MDC)
-   */
-  private async copyWithConversion(
-    sourceDir: string,
-    targetDir: string,
-    results: MigrationStats,
-  ): Promise<void> {
-    try {
-      const entries = await readdir(sourceDir, { withFileTypes: true })
-
-      for (const entry of entries) {
-        const sourcePath = join(sourceDir, entry.name)
-        let targetPath = join(targetDir, entry.name)
-
-        if (entry.isDirectory()) {
-          await this.copyWithConversion(sourcePath, targetPath, results)
-        }
-        else if (entry.isFile()) {
-          if (entry.name.endsWith('.md')) {
-            targetPath = targetPath.replace(/\.md$/, '.mdc')
-
-            if (await fileExists(targetPath) && !this.options.autoOverwrite) {
-              results.skipped++
-              continue
-            }
-
-            const success = await markdownToMdc(sourcePath, targetPath)
-            if (success) {
-              results.success++
-            }
-            else {
-              results.error++
-              results.errors.push({ file: entry.name, error: '转换失败 (Conversion failed)' })
-            }
-          }
-          else {
-            const result = await copyFileSafe(sourcePath, targetPath, this.options.autoOverwrite)
-            if (result.success) {
-              results.success++
-            }
-            else if (result.skipped) {
-              results.skipped++
-            }
-            else {
-              results.error++
-              results.errors.push({ file: entry.name, error: result.error?.message || '复制失败 (Copy failed)' })
-            }
           }
         }
       }

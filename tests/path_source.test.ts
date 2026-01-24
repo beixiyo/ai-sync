@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getCommandsSourcePath, getSkillsSourcePath } from '../src/lib/path'
+import { getCommandsSourcePath, getMCPSourcePath, getRuleSourcePath, getSkillsSourcePath } from '../src/lib/path'
 import * as fileUtils from '../src/lib/utils/file'
 
 vi.mock('../src/lib/utils/file', () => ({
@@ -16,54 +16,68 @@ describe('path source utils', () => {
   })
 
   describe('getCommandsSourcePath', () => {
-    it('should return .claude/commands if it exists', async () => {
+    it('should always return .claude/commands', async () => {
       const claudePath = resolve(sourceDir, '.claude/commands')
-      vi.mocked(fileUtils.directoryExists).mockImplementation(async path => path === claudePath)
-
       const result = await getCommandsSourcePath(sourceDir)
       expect(result).toBe(claudePath)
-    })
-
-    it('should return commands if .claude/commands does not exist but commands exists', async () => {
-      const claudePath = resolve(sourceDir, '.claude/commands')
-      const fallbackPath = resolve(sourceDir, 'commands')
-      vi.mocked(fileUtils.directoryExists).mockImplementation(async path => path === fallbackPath)
-
-      const result = await getCommandsSourcePath(sourceDir)
-      expect(result).toBe(fallbackPath)
-    })
-
-    it('should return .claude/commands if neither exists (default behavior for better error messages)', async () => {
-      vi.mocked(fileUtils.directoryExists).mockResolvedValue(false)
-
-      const result = await getCommandsSourcePath(sourceDir)
-      expect(result).toBe(resolve(sourceDir, '.claude/commands'))
     })
   })
 
   describe('getSkillsSourcePath', () => {
-    it('should return .claude/skills if it exists', async () => {
+    it('should always return .claude/skills', async () => {
       const claudePath = resolve(sourceDir, '.claude/skills')
-      vi.mocked(fileUtils.directoryExists).mockImplementation(async path => path === claudePath)
-
       const result = await getSkillsSourcePath(sourceDir)
       expect(result).toBe(claudePath)
     })
+  })
 
-    it('should return skills if .claude/skills does not exist but skills exists', async () => {
-      const claudePath = resolve(sourceDir, '.claude/skills')
-      const fallbackPath = resolve(sourceDir, 'skills')
-      vi.mocked(fileUtils.directoryExists).mockImplementation(async path => path === fallbackPath)
+  describe('getMCPSourcePath', () => {
+    it('should return .claude.json if it exists', async () => {
+      const mcpPath = resolve(sourceDir, '.claude.json')
+      vi.mocked(fileUtils.fileExists).mockImplementation(async path => path === mcpPath)
 
-      const result = await getSkillsSourcePath(sourceDir)
-      expect(result).toBe(fallbackPath)
+      const result = await getMCPSourcePath(sourceDir)
+      expect(result).toBe(mcpPath)
     })
 
-    it('should return .claude/skills if neither exists', async () => {
-      vi.mocked(fileUtils.directoryExists).mockResolvedValue(false)
+    it('should return .claude.json by default even if not exists', async () => {
+      vi.mocked(fileUtils.fileExists).mockResolvedValue(false)
+      const result = await getMCPSourcePath(sourceDir)
+      expect(result).toBe(resolve(sourceDir, '.claude.json'))
+    })
+  })
 
-      const result = await getSkillsSourcePath(sourceDir)
-      expect(result).toBe(resolve(sourceDir, '.claude/skills'))
+  describe('getRuleSourcePath', () => {
+    it('should return .claude/CLAUDE.md if it exists (highest priority)', async () => {
+      const claudeMdPath = resolve(sourceDir, '.claude/CLAUDE.md')
+      vi.mocked(fileUtils.fileExists).mockImplementation(async path => path === claudeMdPath)
+
+      const result = await getRuleSourcePath(sourceDir)
+      expect(result).toBe(claudeMdPath)
+    })
+
+    it('should return .claude/AGENTS.md if CLAUDE.md not exists in .claude/', async () => {
+      const agentsMdPath = resolve(sourceDir, '.claude/AGENTS.md')
+      vi.mocked(fileUtils.fileExists).mockImplementation(async (path) => {
+        if (path === agentsMdPath)
+          return true
+        return false
+      })
+
+      const result = await getRuleSourcePath(sourceDir)
+      expect(result).toBe(agentsMdPath)
+    })
+
+    it('should return root CLAUDE.md if not in .claude/', async () => {
+      const rootMdPath = resolve(sourceDir, 'CLAUDE.md')
+      vi.mocked(fileUtils.fileExists).mockImplementation(async (path) => {
+        if (path === rootMdPath)
+          return true
+        return false
+      })
+
+      const result = await getRuleSourcePath(sourceDir)
+      expect(result).toBe(rootMdPath)
     })
   })
 })

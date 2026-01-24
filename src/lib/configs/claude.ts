@@ -12,7 +12,7 @@ export const claudeConfig: ToolConfig = {
     target: '~/.claude/skills',
   },
   rules: {
-    source: '.cursor/rules',
+    source: '.claude/CLAUDE.md',
     format: 'markdown',
     target: '~/.claude/CLAUDE.md',
     merge: true,
