@@ -113,7 +113,7 @@ export interface ToolConfig {
   name: string
   commands: CommandConfig
   skills: SkillConfig
-  rules: RuleConfig
+  rules?: RuleConfig
   mcp: MCPConfig
   supported: ConfigType[]
 }

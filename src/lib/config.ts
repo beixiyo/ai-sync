@@ -47,7 +47,7 @@ export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
   rules: {
     name: 'Rules',
     source: '.claude/',
-    directCopy: ['cursor'],
+    directCopy: [],
     mergeToMarkdown: ['claude', 'opencode', 'gemini', 'iflow', 'codex'],
   },
   mcp: {

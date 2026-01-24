@@ -41,6 +41,8 @@
 同步时按以下顺序优先选择规则源：
 `~.claude/{CLAUDE.md,AGENTS.md}`
 
+> 注意：不再向 Cursor 迁移 Rules，因为 Cursor 已支持自动检测 `~/.claude/CLAUDE.md`
+
 ## Commands 转换总结对比
 
 | 特性 | Gemini CLI | Cursor | Claude Code | OpenCode | Codex CLI |

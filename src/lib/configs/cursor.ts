@@ -11,15 +11,10 @@ export const cursorConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.cursor/skills',
   },
-  rules: {
-    source: '.claude/CLAUDE.md',
-    format: 'mdc',
-    target: '~/.cursor/rules',
-  },
   mcp: {
     source: '.claude.json',
     target: '~/.cursor/mcp.json',
     convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  supported: ['commands', 'skills', 'mcp'],
 }

@@ -121,7 +121,7 @@ export default defineConfig({
 |---------|--------|
 | **Commands** | Claude → Cursor/OpenCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换 |
 | **Skills** | 所有工具：直接复制 |
-| **Rules** | Cursor → 其他工具：.mdc 文件合并为单个 Markdown<br>其他工具 → Cursor：保持多文件结构 |
+| **Rules** | Cursor → 其他工具：.mdc 文件合并为单个 Markdown<br>其他工具 → Cursor：不迁移（Cursor 已支持自动检测 ~/.claude/CLAUDE.md） |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow：自动格式转换 |
 
 ### 路径规则

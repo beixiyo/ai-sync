@@ -155,7 +155,7 @@ module.exports = {
       /** 验证现有工具配置修改成功 */
       expect(merged.tools?.cursor?.name).toBe('Custom Cursor')
       /** 验证现有工具其他配置保持不变 */
-      expect(merged.tools?.cursor?.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
+      expect(merged.tools?.cursor?.supported).toEqual(['commands', 'skills', 'mcp'])
     })
 
     it('should merge global config', () => {
@@ -195,7 +195,7 @@ module.exports = {
     it('should work with custom transform function', async () => {
       const config: SyncConfig = {
         tools: {
-          cursor: {
+          claude: {
             rules: {
               transform: (content: string) => `${content}\n# Custom Rule Suffix`,
             },
@@ -204,9 +204,9 @@ module.exports = {
       }
 
       const merged = mergeConfigs(INTERNAL_CONFIG, config)
-      expect(merged.tools?.cursor?.rules?.transform).toBeDefined()
+      expect(merged.tools?.claude?.rules?.transform).toBeDefined()
 
-      const transformed = await (merged.tools?.cursor?.rules?.transform as any)('Original Content', 'test.md')
+      const transformed = await (merged.tools?.claude?.rules?.transform as any)('Original Content', 'test.md')
       expect(transformed).toBe('Original Content\n# Custom Rule Suffix')
     })
 

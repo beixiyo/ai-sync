@@ -61,10 +61,9 @@ describe('config utils', () => {
       const config = TOOL_CONFIGS.cursor
 
       expect(config.name).toBe('Cursor')
-      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
+      expect(config.supported).toEqual(['commands', 'skills', 'mcp'])
       expect(config.commands).toBeDefined()
       expect(config.skills).toBeDefined()
-      expect(config.rules).toBeDefined()
       expect(config.mcp).toBeDefined()
     })
 
