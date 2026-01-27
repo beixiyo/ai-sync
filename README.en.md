@@ -22,6 +22,7 @@ Automated script to migrate Claude configurations to different AI IDE tools
 
 - Cursor
 - Claude Code
+- CodeBuddy
 - OpenCode
 - CodeX
 - Gemini CLI

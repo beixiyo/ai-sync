@@ -27,6 +27,7 @@ export function getToolPath(
   const paths: Record<ToolKey, string> = {
     cursor: '~/.cursor',
     claude: '~/.claude',
+    codebuddy: '~/.codebuddy',
     opencode: '~/.config/opencode',
     gemini: '~/.gemini',
     iflow: '~/.iflow',
@@ -62,6 +63,8 @@ export function getToolPath(
         return join(basePath, 'mcp.json')
       case 'claude':
         return join(basePath, '.claude.json')
+      case 'codebuddy':
+        return join(basePath, '.mcp.json')
       case 'gemini':
         return join(basePath, 'settings.json')
       case 'iflow':

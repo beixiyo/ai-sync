@@ -22,6 +22,7 @@
 
 - Cursor
 - Claude Code
+- CodeBuddy
 - OpenCode
 - CodeX
 - Gemini CLI

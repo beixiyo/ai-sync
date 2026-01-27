@@ -45,6 +45,7 @@ function printHelp(): void {
   console.log('支持的工具 (Supported tools):')
   console.log('  cursor      - Cursor')
   console.log('  claude      - Claude Code')
+  console.log('  codebuddy   - CodeBuddy')
   console.log('  opencode    - OpenCode')
   console.log('  gemini      - Gemini CLI')
   console.log('  iflow       - IFlow CLI')

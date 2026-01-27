@@ -55,6 +55,16 @@ describe('path utils', () => {
       expect(result).toBe('/home/user/.claude/skills')
     })
 
+    it('should return global path for codebuddy commands', () => {
+      const result = normalizePath(getToolPath('codebuddy', 'commands')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.codebuddy/commands')
+    })
+
+    it('should return global path for codebuddy mcp', () => {
+      const result = normalizePath(getToolPath('codebuddy', 'mcp')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.codebuddy/.mcp.json')
+    })
+
     it('should return global path for opencode rules', () => {
       const result = normalizePath(getToolPath('opencode', 'rules')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.config/opencode/rules')

@@ -45,16 +45,16 @@
 
 ## Commands 转换总结对比
 
-| 特性 | Gemini CLI | Cursor | Claude Code | OpenCode | Codex CLI |
-|------|------------|---------|-------------|----------|-----------|
-| 文件格式 | TOML | Markdown | Markdown | Markdown / JSON | TOML / YAML |
-| 项目位置 | `.gemini/commands/` | `.cursor/commands/` | `.claude/commands/` | `.opencode/command/` | `.codex/prompts/` |
-| 全局位置 | `~/.gemini/commands` | `~/.cursor/commands/` | `~/.claude/commands/` | `~/.config/opencode/command/` | `~/.codex/prompts/` |
-| 参数语法 | `{{args}}` | 无特殊语法 | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2`, 命名参数 |
-| Shell执行 | `!{command}` | 不支持 | `!`command`` (需声明 allowed-tools) | `!`command`` (无需声明) | 配置文件白名单 |
-| 文件引用 | `@{filepath}` | 不支持 | `@filename` | `@filename` | `@filename` |
-| 命名空间 | 子目录 | 子目录 | 子目录 | 子目录 | 子目录 |
-| Frontmatter | 不支持 | 不支持 | 支持 | 支持 | 支持 |
+| 特性 | Gemini CLI | Cursor | Claude Code | CodeBuddy | OpenCode | Codex CLI |
+|------|------------|---------|-------------|-----------|----------|-----------|
+| 文件格式 | TOML | Markdown | Markdown | Markdown | Markdown / JSON | TOML / YAML |
+| 项目位置 | `.gemini/commands/` | `.cursor/commands/` | `.claude/commands/` | `.codebuddy/commands/` | `.opencode/command/` | `.codex/prompts/` |
+| 全局位置 | `~/.gemini/commands` | `~/.cursor/commands/` | `~/.claude/commands/` | `~/.codebuddy/commands/` | `~/.config/opencode/command/` | `~/.codex/prompts/` |
+| 参数语法 | `{{args}}` | 无特殊语法 | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2`, 命名参数 |
+| Shell执行 | `!{command}` | 不支持 | `!`command`` (需声明 allowed-tools) | `!`command`` (需声明 allowed-tools) | `!`command`` (无需声明) | 配置文件白名单 |
+| 文件引用 | `@{filepath}` | 不支持 | `@filename` | `@filename` | `@filename` | `@filename` |
+| 命名空间 | 子目录 | 子目录 | 子目录 | 子目录 | 子目录 | 子目录 |
+| Frontmatter | 不支持 | 不支持 | 支持 | 支持 | 支持 | 支持 |
 
 ## Skills
 各家基本一致，都是符合 Claude Code 技能模块规范的 Markdown 文件，仅仅更换文件夹
@@ -145,15 +145,18 @@
 ```toml
 [mcp_servers.context7]
 command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
+args = [
+  "-y",
+  "@upstash/context7-mcp"
+]
+
 [mcp_servers.context7.env]
 MY_ENV_VAR = "MY_ENV_VALUE"
-
 
 [mcp_servers.figma]
 url = "https://mcp.figma.com/mcp"
 bearer_token_env_var = "FIGMA_OAUTH_TOKEN"
-http_headers = { "X-Figma-Region" = "us-east-1" }
+http_headers = { X-Figma-Region = "us-east-1" }
 ```
 
 ### Cursor
@@ -180,6 +183,27 @@ http_headers = { "X-Figma-Region" = "us-east-1" }
 }
 ```
 
+### CodeBuddy
+`~/.codebuddy/.mcp.json`
+```json
+{
+  "mcpServers": {
+    "lsp-mcp": {
+      "type": "http",
+      "url": "http://127.0.0.1:9527/mcp"
+    },
+    "context7-mcp": {
+      "command": "npx",
+      "args": [
+        "@upstash/context7-mcp@v1.0.17"
+      ]
+    }
+  }
+}
+```
+
+> **注意**: CodeBuddy 的配置与 Claude Code 完全一致，包括 Hooks 支持。配置文件路径为 `~/.codebuddy/.mcp.json` 或项目级别的 `.codebuddy/.mcp.json`。
+
 ## 注意事项规则
 - OpenCode 对 Claude Skills 兼容性有限，某些高级字段会被忽略
 - 路径处理需正确处理 `~` 展开和跨平台路径分隔符
@@ -189,3 +213,5 @@ http_headers = { "X-Figma-Region" = "us-east-1" }
 - Gemini/IFlow 的远程 MCP 需使用 `httpUrl` 字段而非 `url`
 - OpenCode MCP 配置需添加 `type` 和 `enabled` 字段
 - 环境变量传递方式在不同工具间存在差异，需注意转换规则
+- **CodeBuddy 与 Claude Code 配置完全兼容**，支持所有 Claude Code 的特性（Commands、Skills、Rules、MCP、Hooks）
+- CodeBuddy 的配置目录为 `~/.codebuddy`，Rule 文件为 `CODEBUDDY.md`，MCP 配置为 `.mcp.json`

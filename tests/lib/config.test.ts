@@ -11,11 +11,12 @@ describe('config utils', () => {
     it('should return all tools with name', () => {
       const result = getToolChoiceList()
 
-      expect(result).toHaveLength(6)
+      expect(result).toHaveLength(7)
       expect(result).toEqual(
         expect.arrayContaining([
           { name: 'Cursor', value: 'cursor' },
           { name: 'Claude Code', value: 'claude' },
+          { name: 'CodeBuddy', value: 'codebuddy' },
           { name: 'OpenCode', value: 'opencode' },
           { name: 'Gemini CLI', value: 'gemini' },
           { name: 'IFlow CLI', value: 'iflow' },
@@ -44,7 +45,7 @@ describe('config utils', () => {
     })
 
     it('should return true for all tools for skills', () => {
-      const tools = ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex']
+      const tools = ['cursor', 'claude', 'codebuddy', 'opencode', 'gemini', 'iflow', 'codex']
       tools.forEach((tool) => {
         expect(isConfigTypeSupported(tool, 'skills')).toBe(true)
       })
@@ -72,8 +73,18 @@ describe('config utils', () => {
 
       expect(config.name).toBe('Claude Code')
       expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
-      expect(config.rules.merge).toBe(true)
+      expect(config.rules?.merge).toBe(true)
       expect(config.mcp).toBeDefined()
+    })
+
+    it('should have all required properties for codebuddy', () => {
+      const config = TOOL_CONFIGS.codebuddy
+
+      expect(config.name).toBe('CodeBuddy')
+      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
+      expect(config.rules?.merge).toBe(true)
+      expect(config.mcp).toBeDefined()
+      expect(config.mcp.target).toBe('~/.codebuddy/.mcp.json')
     })
 
     it('should not support hooks for opencode', () => {
