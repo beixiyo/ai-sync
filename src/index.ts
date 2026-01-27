@@ -17,12 +17,14 @@ import { loadUserConfig, mergeConfigs } from './lib/customConfig'
 import { CommandsMigrator } from './lib/migrators/commands'
 import { MCPMigrator } from './lib/migrators/mcp'
 import { RulesMigrator } from './lib/migrators/rules'
+import { SettingsMigrator } from './lib/migrators/settings'
 import { SkillsMigrator } from './lib/migrators/skills'
 import {
   expandHome,
   getCommandsSourcePath,
   getMCPSourcePath,
   getRuleSourcePath,
+  getSettingsSourcePath,
   getSkillsSourcePath,
   resolveSourceDir,
 } from './lib/path'
@@ -37,7 +39,7 @@ function printHelp(): void {
   console.log('选项 (Options):')
   console.log('  -s, --source <dir>     源目录 (Source directory)（默认：~）')
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
-  console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,rules,mcp）')
+  console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,rules,mcp,settings）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
   console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
   console.log('  -h, --help             显示帮助信息 (Show help)')
@@ -99,8 +101,9 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
         { name: 'Skills (技能/工具)', value: 'skills' },
         { name: 'Rules (规则/指令)', value: 'rules' },
         { name: 'MCP (模型上下文协议)', value: 'mcp' },
+        { name: 'Settings (设置/Hooks/权限)', value: 'settings' },
       ],
-      default: ['commands', 'skills', 'rules', 'mcp'],
+      default: ['commands', 'skills', 'rules', 'mcp', 'settings'],
     },
   ])
 
@@ -226,7 +229,7 @@ async function main(): Promise<void> {
     tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
   }
 
-  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'rules', 'mcp']
+  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'rules', 'mcp', 'settings']
 
   for (const configType of configTypes) {
     const supportedTools = options.tools.filter(supportedTool => isConfigTypeSupported(supportedTool, configType, toolsConfig))
@@ -259,6 +262,11 @@ async function main(): Promise<void> {
         case 'mcp': {
           const mcpPath = await getMCPSourcePath(sourceDir)
           migrator = new MCPMigrator(mcpPath, supportedTools, options, toolsConfig)
+          break
+        }
+        case 'settings': {
+          const settingsPath = await getSettingsSourcePath(sourceDir)
+          migrator = new SettingsMigrator(settingsPath, supportedTools, options, toolsConfig)
           break
         }
         default:

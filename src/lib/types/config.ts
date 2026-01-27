@@ -10,7 +10,7 @@ export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' 
 /**
  * 配置类型
  */
-export type ConfigType = 'commands' | 'skills' | 'rules' | 'mcp'
+export type ConfigType = 'commands' | 'skills' | 'rules' | 'mcp' | 'settings'
 
 /**
  * 文件格式类型
@@ -107,6 +107,18 @@ export interface RemoteMCPConfig {
 export type MCPServerConfig = LocalMCPConfig | RemoteMCPConfig
 
 /**
+ * Settings 配置（包含 Hooks 和 Permissions）
+ */
+export interface SettingsConfig {
+  source?: string
+  target?: string
+  /**
+   * 合并模式（深度合并现有配置）
+   */
+  merge?: boolean
+}
+
+/**
  * 工具配置
  */
 export interface ToolConfig {
@@ -115,6 +127,7 @@ export interface ToolConfig {
   skills: SkillConfig
   rules?: RuleConfig
   mcp: MCPConfig
+  settings?: SettingsConfig
   supported: ConfigType[]
 }
 

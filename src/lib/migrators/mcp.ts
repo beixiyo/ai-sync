@@ -59,6 +59,12 @@ export class MCPMigrator extends BaseMigrator {
         await writeTOMLFile(actualTargetPath, targetConfig)
       else await writeJSONFile(actualTargetPath, targetConfig)
 
+      /** CodeBuddy 特殊处理：同时同步到 mcp.json (CodeBuddy special: also sync to mcp.json) */
+      if (tool === 'codebuddy' && actualTargetPath.endsWith('.mcp.json')) {
+        const secondaryPath = actualTargetPath.replace('.mcp.json', 'mcp.json')
+        await writeJSONFile(secondaryPath, targetConfig)
+      }
+
       results.success++
       console.log(chalk.green(`✓ MCP 迁移完成: ${tool}`))
     }

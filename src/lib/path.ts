@@ -74,6 +74,11 @@ export function getToolPath(
     }
   }
 
+  /** 为 Settings 配置特殊处理路径 */
+  if (configType === 'settings') {
+    return join(basePath, 'settings.json')
+  }
+
   return join(basePath, configType)
 }
 
@@ -152,6 +157,14 @@ export async function getCommandsSourcePath(sourceDir: string): Promise<string> 
  */
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/skills')
+  return claudePath
+}
+
+/**
+ * 获取设置源路径
+ */
+export async function getSettingsSourcePath(sourceDir: string): Promise<string> {
+  const claudePath = resolve(sourceDir, '.claude/settings.json')
   return claudePath
 }
 

@@ -21,5 +21,10 @@ export const claudeConfig: ToolConfig = {
     source: '.claude.json',
     target: '~/.claude/.claude.json',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  settings: {
+    source: '.claude/settings.json',
+    target: '~/.claude/settings.json',
+    merge: true,
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'settings'],
 }

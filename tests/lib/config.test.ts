@@ -72,7 +72,7 @@ describe('config utils', () => {
       const config = TOOL_CONFIGS.claude
 
       expect(config.name).toBe('Claude Code')
-      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
+      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp', 'settings'])
       expect(config.rules?.merge).toBe(true)
       expect(config.mcp).toBeDefined()
     })
@@ -81,7 +81,7 @@ describe('config utils', () => {
       const config = TOOL_CONFIGS.codebuddy
 
       expect(config.name).toBe('CodeBuddy')
-      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp'])
+      expect(config.supported).toEqual(['commands', 'skills', 'rules', 'mcp', 'settings'])
       expect(config.rules?.merge).toBe(true)
       expect(config.mcp).toBeDefined()
       expect(config.mcp.target).toBe('~/.codebuddy/.mcp.json')

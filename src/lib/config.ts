@@ -56,6 +56,11 @@ export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
     directCopy: ['claude'],
     convert: ['cursor', 'opencode', 'gemini', 'iflow', 'codex'],
   },
+  settings: {
+    name: 'Settings',
+    source: '.claude/settings.json',
+    directCopy: ['claude', 'codebuddy'],
+  },
 }
 
 /**

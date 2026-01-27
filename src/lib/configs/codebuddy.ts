@@ -21,5 +21,10 @@ export const codebuddyConfig: ToolConfig = {
     source: '.claude.json',
     target: '~/.codebuddy/.mcp.json',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  settings: {
+    source: '.claude/settings.json',
+    target: '~/.codebuddy/settings.json',
+    merge: true,
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'settings'],
 }
