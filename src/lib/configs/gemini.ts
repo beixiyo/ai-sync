@@ -1,4 +1,6 @@
 import type { ToolConfig } from '../types/config'
+import { convertToUniversalAgent } from '../converters/agent'
+import { convertToGeminiFormat } from '../converters/mcp'
 
 export const geminiConfig: ToolConfig = {
   name: 'Gemini CLI',
@@ -22,10 +24,12 @@ export const geminiConfig: ToolConfig = {
     source: '.claude.json',
     target: '~/.gemini/settings.json',
     convert: true,
+    transform: convertToGeminiFormat,
   },
   agents: {
     source: '.claude/agents',
     target: '~/.gemini/agents',
+    transform: convertToUniversalAgent,
   },
   supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
 }

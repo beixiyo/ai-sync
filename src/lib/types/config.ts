@@ -28,7 +28,7 @@ export type ConfigDirType = 'global' | 'project'
 export interface CommandConfig {
   source?: string
   format?: FormatType
-  target?: string
+  target?: string | string[]
   convert?: boolean
   /**
    * 自定义内容转换逻辑 (Custom content transformation logic)
@@ -41,7 +41,7 @@ export interface CommandConfig {
  */
 export interface SkillConfig {
   source?: string
-  target?: string
+  target?: string | string[]
   /**
    * 自定义内容转换逻辑 (Custom content transformation logic)
    */
@@ -53,7 +53,7 @@ export interface SkillConfig {
  */
 export interface AgentConfig {
   source?: string
-  target?: string
+  target?: string | string[]
   /**
    * 自定义内容转换逻辑 (Custom content transformation logic)
    */
@@ -66,7 +66,7 @@ export interface AgentConfig {
 export interface RuleConfig {
   source?: string
   format?: FormatType
-  target?: string
+  target?: string | string[]
   merge?: boolean
   /**
    * 自定义单个文件转换逻辑 (Custom single file transformation logic)
@@ -83,7 +83,7 @@ export interface RuleConfig {
  */
 export interface MCPConfig {
   source?: string
-  target?: string
+  target?: string | string[]
   convert?: boolean
   /**
    * 自定义MCP配置转换逻辑 (Custom MCP configuration transformation logic)
@@ -123,7 +123,7 @@ export type MCPServerConfig = LocalMCPConfig | RemoteMCPConfig
  */
 export interface SettingsConfig {
   source?: string
-  target?: string
+  target?: string | string[]
   /**
    * 合并模式（深度合并现有配置）
    */
@@ -166,11 +166,6 @@ export interface ConfigDirChoice {
 export interface ConfigTypeInfo {
   name: string
   source: string
-  directCopy?: ToolKey[]
-  convertToTOML?: ToolKey[]
-  mergeToMarkdown?: ToolKey[]
-  convert?: ToolKey[]
-  config?: string
 }
 
 /**

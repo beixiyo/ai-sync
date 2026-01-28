@@ -1,8 +1,5 @@
-import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig, ToolConfig, ToolKey } from '../config'
+import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
-import { dirname } from 'node:path'
-import chalk from 'chalk'
-import { getOpenCodeMCPPath } from '../path'
 import { fileExists, readJSONFile, readTOMLFile, writeJSONFile, writeTOMLFile } from '../utils/file'
 import { BaseMigrator } from './base'
 
@@ -19,22 +16,21 @@ export class MCPMigrator extends BaseMigrator {
 
   protected async migrateForTool(tool: ToolKey, targetPath: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
-    const actualTargetPath = tool === 'opencode'
-      ? await getOpenCodeMCPPath(dirname(targetPath))
-      : targetPath
 
     try {
       const sourceContent = await readJSONFile<any>(this.sourceDir)
-      const isToml = actualTargetPath.endsWith('.toml')
+      const isToml = targetPath.endsWith('.toml')
 
       let targetConfig: any = {}
-      if (await fileExists(actualTargetPath)) {
-        targetConfig = isToml
-          ? await readTOMLFile(actualTargetPath)
-          : await readJSONFile(actualTargetPath)
+      if (await fileExists(targetPath)) {
+        if (isToml) targetConfig = await readTOMLFile(targetPath)
+        else targetConfig = await readJSONFile(targetPath)
       }
 
-      const converted = this.convertMCPConfig(sourceContent, tool)
+      const transform = this.tools[tool]?.mcp?.transform
+      const converted = transform
+        ? await transform(sourceContent)
+        : { mcpServers: { ...(sourceContent.mcpServers || {}) } }
 
       if (this.options.autoOverwrite) {
         /** 如果是自动覆盖模式，直接替换关键配置项 (If auto-overwrite, replace key config items directly) */
@@ -56,118 +52,26 @@ export class MCPMigrator extends BaseMigrator {
       }
 
       if (isToml)
-        await writeTOMLFile(actualTargetPath, targetConfig)
-      else await writeJSONFile(actualTargetPath, targetConfig)
+        await writeTOMLFile(targetPath, targetConfig)
+      else await writeJSONFile(targetPath, targetConfig)
 
       /** CodeBuddy 特殊处理：同时同步到 mcp.json (CodeBuddy special: also sync to mcp.json) */
-      if (tool === 'codebuddy' && actualTargetPath.endsWith('.mcp.json')) {
-        const secondaryPath = actualTargetPath.replace('.mcp.json', 'mcp.json')
+      if (tool === 'codebuddy' && targetPath.endsWith('.mcp.json')) {
+        const secondaryPath = targetPath.replace('.mcp.json', 'mcp.json')
         await writeJSONFile(secondaryPath, targetConfig)
       }
 
       results.success++
-      console.log(chalk.green(`✓ MCP 迁移完成: ${tool}`))
+      this.reportSuccess(`MCP 迁移完成: ${tool}`)
     }
     catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : '迁移失败'
       results.error++
-      results.errors.push({ file: actualTargetPath, error: errorMessage })
-      console.error(chalk.red(`✗ MCP 迁移失败 (${tool}): ${errorMessage}`))
+      results.errors.push({ file: targetPath, error: errorMessage })
+      this.reportError(`MCP 迁移失败 (${tool})`, errorMessage)
     }
     return results
-  }
-
-  private convertMCPConfig(sourceConfig: any, tool: ToolKey): any {
-    const mcpServers = sourceConfig.mcpServers || {}
-    switch (tool) {
-      case 'opencode':
-        return { mcp: this.convertToOpenCodeFormat(mcpServers) }
-      case 'codex':
-        return { mcp_servers: this.convertMCPToCodexFormat(mcpServers) }
-      case 'gemini':
-      case 'iflow':
-        return { mcpServers: this.convertToGeminiFormat(mcpServers) }
-      default:
-        return { mcpServers: { ...mcpServers } }
-    }
-  }
-
-  private isLocalMCPConfig(config: MCPServerConfig): config is LocalMCPConfig {
-    return 'command' in config
-  }
-
-  private isRemoteMCPConfig(config: MCPServerConfig): config is RemoteMCPConfig {
-    return 'url' in config || 'httpUrl' in config
-  }
-
-  private convertMCPToCodexFormat(mcpServers: Record<string, MCPServerConfig>): Record<string, any> {
-    const codexMcp: Record<string, any> = {}
-    Object.entries(mcpServers).forEach(([name, server]) => {
-      if (this.isLocalMCPConfig(server)) {
-        codexMcp[name] = {
-          command: server.command,
-          args: server.args || [],
-          ...(server.env && Object.keys(server.env).length > 0
-            ? { env: server.env }
-            : {}),
-        }
-      }
-      else if (this.isRemoteMCPConfig(server)) {
-        codexMcp[name] = {
-          url: server.url || server.httpUrl,
-          ...(server.headers && Object.keys(server.headers).length > 0
-            ? { http_headers: server.headers }
-            : {}),
-        }
-      }
-    })
-    return codexMcp
-  }
-
-  private convertToOpenCodeFormat(mcpServers: Record<string, MCPServerConfig>): Record<string, any> {
-    const opencodeMcp: Record<string, any> = {}
-    Object.entries(mcpServers).forEach(([name, server]) => {
-      if (this.isLocalMCPConfig(server)) {
-        opencodeMcp[name] = {
-          type: 'local',
-          command: Array.isArray(server.command)
-            ? server.command
-            : [server.command, ...(server.args || [])],
-          enabled: true,
-        }
-      }
-      else if (this.isRemoteMCPConfig(server)) {
-        opencodeMcp[name] = {
-          type: 'remote',
-          url: server.url || server.httpUrl,
-          enabled: true,
-        }
-      }
-      else {
-        opencodeMcp[name] = { ...(server as any), enabled: true }
-      }
-    })
-    return opencodeMcp
-  }
-
-  private convertToGeminiFormat(mcpServers: Record<string, MCPServerConfig>): Record<string, any> {
-    const geminiMcp: Record<string, any> = {}
-    Object.entries(mcpServers).forEach(([name, server]) => {
-      if (this.isRemoteMCPConfig(server)) {
-        const url = server.url || server.httpUrl
-        geminiMcp[name] = {
-          ...(server as any),
-          httpUrl: url,
-          type: 'streamable-http',
-        }
-        delete (geminiMcp[name] as any).url
-      }
-      else {
-        geminiMcp[name] = { ...(server as any) }
-      }
-    })
-    return geminiMcp
   }
 }

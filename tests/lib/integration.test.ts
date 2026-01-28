@@ -170,7 +170,7 @@ describe('集成测试 (全面覆盖)', () => {
   })
 
   describe('各工具路径与格式准确性验证', () => {
-    it('openCode 应该使用正确的复数目录名 (commands/skills) 和 .jsonc 扩展名', async () => {
+    it('openCode 应该使用正确的目录名 (command/skill) 和 opencode.jsonc 扩展名', async () => {
       const migratorC = new CommandsMigrator(join(testTargetDir, '.claude', 'commands'), ['opencode'], { autoOverwrite: true }, TOOL_CONFIGS)
       const migratorM = new MCPMigrator(join(testTargetDir, '.claude.json'), ['opencode'], { autoOverwrite: true }, TOOL_CONFIGS)
 

@@ -81,6 +81,8 @@ export class Logger {
   }
 }
 
+export const logger = new Logger()
+
 export interface MigrationError {
   file: string
   error: string

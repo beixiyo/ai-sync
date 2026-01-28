@@ -1,4 +1,5 @@
 import type { ToolConfig } from '../types/config'
+import { convertToUniversalAgent } from '../converters/agent'
 
 export const cursorConfig: ToolConfig = {
   name: 'Cursor',
@@ -19,6 +20,7 @@ export const cursorConfig: ToolConfig = {
   agents: {
     source: '.claude/agents',
     target: '~/.cursor/agents',
+    transform: convertToUniversalAgent,
   },
   supported: ['commands', 'skills', 'mcp', 'agents'],
 }

@@ -1,6 +1,7 @@
 import type { ConfigType, ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
-import { getToolPath } from '../path'
+import { resolveTargetPath } from '../path'
+import { logger } from '../utils/logger'
 
 /**
  * 迁移器抽象基类
@@ -11,6 +12,7 @@ export abstract class BaseMigrator {
   protected options: MigrateOptions
   protected configType: ConfigType
   protected tools: Record<ToolKey, ToolConfig>
+  protected logger = logger
 
   constructor(
     sourceDir: string,
@@ -34,7 +36,7 @@ export abstract class BaseMigrator {
 
     for (const tool of this.targetTools) {
       try {
-        const targetDir = this.getTargetDir(tool)
+        const targetDir = await this.getTargetDir(tool)
         const toolStats = await this.migrateForTool(tool, targetDir)
 
         results.success += toolStats.success
@@ -65,11 +67,25 @@ export abstract class BaseMigrator {
   /**
    * 获取目标路径
    */
-  protected getTargetDir(tool: ToolKey): string {
-    return getToolPath(
+  protected async getTargetDir(tool: ToolKey): Promise<string> {
+    return resolveTargetPath(
       tool,
       this.configType,
     )
+  }
+
+  /**
+   * 辅助方法：报告成功
+   */
+  protected reportSuccess(message: string): void {
+    this.logger.success(`✓ ${message}`)
+  }
+
+  /**
+   * 辅助方法：报告错误
+   */
+  protected reportError(message: string, error?: string): void {
+    this.logger.error(`✗ ${message}${error ? `: ${error}` : ''}`)
   }
 
   /**

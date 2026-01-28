@@ -6,7 +6,6 @@ import type {
   ConfigDirChoice,
   ConfigFn,
   ConfigType,
-  ConfigTypeInfo,
   SyncConfig,
   ToolChoice,
   ToolConfig,
@@ -28,45 +27,6 @@ export const INTERNAL_CONFIG = {
  * 工具配置映射
  */
 export const TOOL_CONFIGS: Record<ToolKey, ToolConfig> = INTERNAL_CONFIG.tools as Record<ToolKey, ToolConfig>
-
-/**
- * 配置类型信息映射
- */
-export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
-  commands: {
-    name: 'Commands',
-    source: '.claude/commands',
-    directCopy: ['cursor', 'claude', 'opencode', 'codex'],
-    convertToTOML: ['gemini', 'iflow'],
-  },
-  skills: {
-    name: 'Skills',
-    source: '.claude/skills',
-    directCopy: ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex'],
-  },
-  rules: {
-    name: 'Rules',
-    source: '.claude/',
-    directCopy: [],
-    mergeToMarkdown: ['claude', 'opencode', 'gemini', 'iflow', 'codex'],
-  },
-  mcp: {
-    name: 'MCP',
-    source: '.claude.json',
-    directCopy: ['claude'],
-    convert: ['cursor', 'opencode', 'gemini', 'iflow', 'codex'],
-  },
-  settings: {
-    name: 'Settings',
-    source: '.claude/settings.json',
-    directCopy: ['claude', 'codebuddy'],
-  },
-  agents: {
-    name: 'Agents',
-    source: '.claude/agents',
-    directCopy: ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex', 'codebuddy'],
-  },
-}
 
 /**
  * 获取工具选择列表

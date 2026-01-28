@@ -7,7 +7,6 @@ import type { MigrateOptions, MigrationStats } from './types'
 import { existsSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import chalk from 'chalk'
 import { convertMarkdownToTOML } from '../converters/markdown-to-toml'
 import { copyDirectory, fileExists, getMarkdownFiles, readFile, writeFile } from '../utils/file'
 import { BaseMigrator } from './base'
@@ -33,7 +32,7 @@ export class CommandsMigrator extends BaseMigrator {
       return results
     }
 
-    if (['gemini', 'iflow'].includes(tool)) {
+    if (toolConfig?.commands?.format === 'toml') {
       await this.migrateWithConversion(targetDir, results, tool)
     }
     else {
@@ -77,14 +76,14 @@ export class CommandsMigrator extends BaseMigrator {
         }
 
         await writeFile(targetPath, transformed, 'utf-8')
-        console.log(chalk.green(`✓ 自定义转换: ${file} (${tool}) (Custom transform: ${file} (${tool}))`))
+        this.reportSuccess(`自定义转换: ${file} (${tool}) (Custom transform: ${file} (${tool}))`)
         results.success++
       }
       catch (error) {
         const errorMessage = error instanceof Error
           ? error.message
           : 'Unknown error'
-        console.error(chalk.red(`✗ 自定义转换失败: ${file} (Custom transform failed: ${file})`), errorMessage)
+        this.reportError(`自定义转换失败: ${file} (Custom transform failed: ${file})`, errorMessage)
         results.error++
         results.errors.push({ file, error: errorMessage })
       }
@@ -112,14 +111,14 @@ export class CommandsMigrator extends BaseMigrator {
 
       try {
         await convertMarkdownToTOML(sourcePath, targetPath)
-        console.log(chalk.green(`✓ 转换: ${file} → ${file.replace('.md', '.toml')} (${tool}) (Transform: ${file} → ${file.replace('.md', '.toml')} (${tool}))`))
+        this.reportSuccess(`转换: ${file} → ${file.replace('.md', '.toml')} (${tool}) (Transform: ${file} → ${file.replace('.md', '.toml')} (${tool}))`)
         results.success++
       }
       catch (error) {
         const errorMessage = error instanceof Error
           ? error.message
           : 'Unknown error'
-        console.error(chalk.red(`✗ 转换失败: ${file} (Transform failed: ${file})`), errorMessage)
+        this.reportError(`转换失败: ${file} (Transform failed: ${file})`, errorMessage)
         results.error++
         results.errors.push({ file, error: errorMessage })
       }

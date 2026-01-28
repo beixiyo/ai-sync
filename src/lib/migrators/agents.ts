@@ -63,12 +63,14 @@ export class AgentsMigrator extends BaseMigrator {
         const transformed = await transform(content, file)
         await ensureDirectoryExists(dirname(targetPath))
         await writeFile(targetPath, transformed, 'utf-8')
+        this.reportSuccess(`转换 Agents: ${file} (${tool})`)
         results.success++
       }
       catch (error) {
         const errorMessage = error instanceof Error
           ? error.message
           : 'Unknown error'
+        this.reportError(`转换 Agents 失败: ${file}`, errorMessage)
         results.error++
         results.errors.push({ file, error: errorMessage })
       }

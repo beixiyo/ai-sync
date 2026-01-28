@@ -48,8 +48,8 @@
 | 特性 | Gemini CLI | Cursor | Claude Code | CodeBuddy | OpenCode | Codex CLI |
 |------|------------|---------|-------------|-----------|----------|-----------|
 | 文件格式 | TOML | Markdown | Markdown | Markdown | Markdown / JSON | TOML / YAML |
-| 项目位置 | `.gemini/commands/` | `.cursor/commands/` | `.claude/commands/` | `.codebuddy/commands/` | `.opencode/command/` | `.codex/prompts/` |
-| 全局位置 | `~/.gemini/commands` | `~/.cursor/commands/` | `~/.claude/commands/` | `~/.codebuddy/commands/` | `~/.config/opencode/command/` | `~/.codex/prompts/` |
+| 项目位置 | `.gemini/commands/` | `.cursor/commands/` | `.claude/commands/` | `.codebuddy/commands/` | `.opencode/commands/` | `.codex/prompts/` |
+| 全局位置 | `~/.gemini/commands` | `~/.cursor/commands/` | `~/.claude/commands/` | `~/.codebuddy/commands/` | `~/.config/opencode/commands/` | `~/.codex/prompts/` |
 | 参数语法 | `{{args}}` | 无特殊语法 | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2` | `$ARGUMENTS`, `$1`, `$2`, 命名参数 |
 | Shell执行 | `!{command}` | 不支持 | `!`command`` (需声明 allowed-tools) | `!`command`` (需声明 allowed-tools) | `!`command`` (无需声明) | 配置文件白名单 |
 | 文件引用 | `@{filepath}` | 不支持 | `@filename` | `@filename` | `@filename` | `@filename` |
@@ -66,7 +66,7 @@
 `~/.claude.json`（Claude Code MCP 配置文件，默认）
 
 ### OpenCode
-`~/.config/opencode/AGENTS.md`
+`~/.config/opencode/opencode.jsonc`
 ```json
 {
   "$schema": "https://opencode.ai/config.json",

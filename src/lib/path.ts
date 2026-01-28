@@ -3,8 +3,10 @@
  */
 
 import type { ConfigType, ToolKey } from './config'
+import { DEFAULT_TOOL_CONFIGS } from './configs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import { fileExists } from './utils/file'
 
 /**
@@ -18,74 +20,60 @@ export function expandHome(filepath: string): string {
 }
 
 /**
- * 获取工具配置路径
+ * 获取工具配置路径 (统一且唯一从配置中心读取)
+ * 不再包含任何 Fallback 猜测，完全由 ToolConfig 驱动
+ * 注意：由于涉及数组探测，此同步版本仅返回第一个配置值
  */
 export function getToolPath(
   tool: ToolKey,
   configType: ConfigType,
 ): string {
-  const paths: Record<ToolKey, string> = {
-    cursor: '~/.cursor',
-    claude: '~/.claude',
-    codebuddy: '~/.codebuddy',
-    opencode: '~/.config/opencode',
-    gemini: '~/.gemini',
-    iflow: '~/.iflow',
-    codex: '~/.codex',
+  const toolConfig = DEFAULT_TOOL_CONFIGS[tool]
+  const typeConfig = toolConfig?.[configType] as any
+
+  if (!typeConfig?.target) {
+    /** 只有在完全没有配置时才使用极简默认值 (仅作为系统鲁棒性保底) */
+    return expandHome(`~/.${tool}/${configType === 'mcp' ? 'mcp.json' : configType}`)
   }
 
-  /** 为自定义工具提供默认路径 */
-  const toolPath = paths[tool as string] || `~/.${tool}`
-  const basePath = expandHome(toolPath)
-
-  /** 为 OpenCode 特殊处理路径，保持其最新的复数形式 (Ensures OpenCode uses its latest plural forms) */
-  if (tool === 'opencode') {
-    if (configType === 'commands')
-      return join(basePath, 'commands')
-    if (configType === 'skills')
-      return join(basePath, 'skills')
-    if (configType === 'agents')
-      return join(basePath, 'agents')
-    if (configType === 'mcp')
-      return join(basePath, 'opencode.jsonc')
-  }
-
-  /** 为 Codex 特殊处理路径 */
-  if (tool === 'codex') {
-    if (configType === 'commands')
-      return join(basePath, 'prompts')
-    if (configType === 'mcp')
-      return join(basePath, 'config.toml')
-  }
-
-  /** 为 MCP 配置特殊处理路径 */
-  if (configType === 'mcp') {
-    switch (tool) {
-      case 'cursor':
-        return join(basePath, 'mcp.json')
-      case 'claude':
-        return join(basePath, '.claude.json')
-      case 'codebuddy':
-        return join(basePath, '.mcp.json')
-      case 'gemini':
-        return join(basePath, 'settings.json')
-      case 'iflow':
-        return join(basePath, 'settings.json')
-      default:
-        return join(basePath, 'mcp.json')
-    }
-  }
-
-  /** 为 Settings 配置特殊处理路径 */
-  if (configType === 'settings') {
-    return join(basePath, 'settings.json')
-  }
-
-  return join(basePath, configType)
+  const target = typeConfig.target
+  const firstPath = Array.isArray(target) ? target[0] : target
+  return expandHome(firstPath)
 }
 
 /**
- * 规范化路径（统一使用正斜杠）
+ * 异步解析最终目标路径 (支持数组动态探测)
+ */
+export async function resolveTargetPath(
+  tool: ToolKey,
+  configType: ConfigType,
+): Promise<string> {
+  const toolConfig = DEFAULT_TOOL_CONFIGS[tool]
+  const typeConfig = toolConfig?.[configType] as any
+
+  if (!typeConfig?.target) {
+    return getToolPath(tool, configType)
+  }
+
+  const target = typeConfig.target
+  if (!Array.isArray(target)) {
+    return expandHome(target)
+  }
+
+  /** 如果是数组，按顺序探测磁盘 */
+  for (const p of target) {
+    const expanded = expandHome(p)
+    if (existsSync(expanded)) {
+      return expanded
+    }
+  }
+
+  /** 如果都不存在，返回第一个作为默认 */
+  return expandHome(target[0])
+}
+
+/**
+ * 规范化路径
  */
 export function normalizePath(filepath: string): string {
   return filepath.replace(/\\/g, '/')
@@ -98,111 +86,62 @@ export async function resolveSourceDir(
   providedSourceDir: string | undefined,
   _defaultConfigDir: string,
 ): Promise<string> {
-  // 1. 如果提供了源目录，直接使用
   if (providedSourceDir) {
     const resolvedPath = resolve(expandHome(providedSourceDir))
-    /** 如果指向的是 .claude 目录，返回其父目录作为 Root */
     if (basename(resolvedPath) === '.claude') {
       return dirname(resolvedPath)
     }
     return resolvedPath
   }
-
-  // 2. 默认使用家目录中的 .claude 所在目录
   return homedir()
 }
 
 /**
- * 获取 MCP 源路径（统一使用 .claude.json）
+ * 获取 MCP 源路径
  */
 export async function getMCPSourcePath(sourceDir: string): Promise<string> {
-  /** 优先从 .claude.json 读取 */
-  const filePath = resolve(sourceDir, '.claude.json')
-  if (await fileExists(filePath)) {
-    return filePath
-  }
-
-  /** 默认返回第一个，用于后续错误展示 */
-  return filePath
+  return resolve(sourceDir, '.claude.json')
 }
 
 /**
- * 获取 OpenCode 配置文件路径（检测 .jsonc 或 .json）
+ * 获取 OpenCode 配置文件路径 (动态探测逻辑)
+ * 用于当配置虽然定义了 target，但需要检查磁盘上是否存在已有的 alternative 格式
  */
 export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
-  // 1. 优先检测 .jsonc（OpenCode 推荐格式）
   const jsonCPath = join(basePath, 'opencode.jsonc')
-  if (await fileExists(jsonCPath)) {
-    return jsonCPath
-  }
-
-  // 2. 其次检测 .json
   const jsonPath = join(basePath, 'opencode.json')
-  if (await fileExists(jsonPath)) {
-    return jsonPath
-  }
 
-  // 3. 都不存在时，默认返回 .jsonc
-  return jsonCPath
+  if (await fileExists(jsonCPath)) return jsonCPath
+  if (await fileExists(jsonPath)) return jsonPath
+
+  return jsonCPath // 默认返回 jsonc
 }
 
-/**
- * 获取命令源路径
- */
 export async function getCommandsSourcePath(sourceDir: string): Promise<string> {
-  const claudePath = resolve(sourceDir, '.claude/commands')
-  return claudePath
+  return resolve(sourceDir, '.claude/commands')
 }
 
-/**
- * 获取技能源路径
- */
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
-  const claudePath = resolve(sourceDir, '.claude/skills')
-  return claudePath
+  return resolve(sourceDir, '.claude/skills')
 }
 
-/**
- * 获取 Agent 源路径
- */
 export async function getAgentsSourcePath(sourceDir: string): Promise<string> {
-  const claudePath = resolve(sourceDir, '.claude/agents')
-  return claudePath
+  return resolve(sourceDir, '.claude/agents')
 }
 
-/**
- * 获取设置源路径
- */
 export async function getSettingsSourcePath(sourceDir: string): Promise<string> {
-  const claudePath = resolve(sourceDir, '.claude/settings.json')
-  return claudePath
+  return resolve(sourceDir, '.claude/settings.json')
 }
 
-/**
- * 获取规则源路径（按照优先级检测）
- * 优先级顺序：
- * 1. .claude/ 目录下的 CLAUDE.md, AGENTS.md 文件
- * 2. 根目录下的 CLAUDE.md, AGENTS.md 文件
- */
 export async function getRuleSourcePath(sourceDir: string): Promise<string> {
-  // 1. 优先检测 .claude/ 目录
   const priorityFiles = ['CLAUDE.md', 'AGENTS.md']
-
   for (const fileName of priorityFiles) {
     const filePath = resolve(sourceDir, '.claude', fileName)
-    if (await fileExists(filePath)) {
-      return filePath
-    }
+    if (await fileExists(filePath)) return filePath
   }
-
-  // 2. 检测根目录
   for (const fileName of priorityFiles) {
     const filePath = resolve(sourceDir, fileName)
-    if (await fileExists(filePath)) {
-      return filePath
-    }
+    if (await fileExists(filePath)) return filePath
   }
-
-  /** 默认返回 .claude/CLAUDE.md */
   return resolve(sourceDir, '.claude', 'CLAUDE.md')
 }

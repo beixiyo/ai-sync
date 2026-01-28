@@ -67,7 +67,7 @@ describe('path utils', () => {
 
     it('should return global path for opencode rules', () => {
       const result = normalizePath(getToolPath('opencode', 'rules')).replace(/^[A-Z]:/, '')
-      expect(result).toBe('/home/user/.config/opencode/rules')
+      expect(result).toBe('/home/user/.config/opencode/AGENTS.md')
     })
 
     it('should return global path for gemini commands', () => {

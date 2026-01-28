@@ -19,7 +19,7 @@ export const claudeConfig: ToolConfig = {
   },
   mcp: {
     source: '.claude.json',
-    target: '~/.claude/.claude.json',
+    target: '~/.claude.json',
   },
   settings: {
     source: '.claude/settings.json',

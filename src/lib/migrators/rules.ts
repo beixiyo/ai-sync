@@ -6,9 +6,7 @@ import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { readdir, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import chalk from 'chalk'
 import { mergeRules } from '../converters/rules-merger'
-import { expandHome } from '../path'
 import { copyDirectory, copyFileSafe, ensureDirectoryExists, fileExists, readFile, writeFile } from '../utils/file'
 import { BaseMigrator } from './base'
 
@@ -85,14 +83,6 @@ export class RulesMigrator extends BaseMigrator {
   }
 
   /**
-   * 获取规则目标文件路径 (针对合并场景)
-   */
-  private getTargetFilePath(tool: ToolKey): string {
-    const toolConfig = this.tools[tool]
-    return expandHome(toolConfig.rules?.target || '')
-  }
-
-  /**
    * 自定义合并迁移
    */
   private async migrateWithCustomMerge(tool: ToolKey, results: MigrationStats): Promise<void> {
@@ -100,18 +90,18 @@ export class RulesMigrator extends BaseMigrator {
     if (!customMerge)
       return
 
-    const targetFile = this.getTargetFilePath(tool)
+    const targetFile = await this.getTargetDir(tool)
 
     try {
       await customMerge(this.sourceDir, targetFile)
-      console.log(chalk.green(`✓ 自定义合并 Rules → ${tool} (Custom merge Rules → ${tool})`))
+      this.reportSuccess(`自定义合并 Rules → ${tool} (Custom merge Rules → ${tool})`)
       results.success++
     }
     catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unknown error'
-      console.error(chalk.red(`✗ 自定义合并 Rules 失败 (${tool}) (Custom merge Rules failed (${tool}))`), errorMessage)
+      this.reportError(`自定义合并 Rules 失败 (${tool}) (Custom merge Rules failed (${tool}))`, errorMessage)
       results.error++
       results.errors.push({ file: targetFile, error: errorMessage })
     }
@@ -121,18 +111,18 @@ export class RulesMigrator extends BaseMigrator {
    * 合并迁移
    */
   private async migrateWithMerge(tool: ToolKey, results: MigrationStats): Promise<void> {
-    const targetFile = this.getTargetFilePath(tool)
+    const targetFile = await this.getTargetDir(tool)
 
     try {
       await mergeRules(this.sourceDir, targetFile)
-      console.log(chalk.green(`✓ 合并 Rules → ${tool} (Merge Rules → ${tool})`))
+      this.reportSuccess(`合并 Rules → ${tool} (Merge Rules → ${tool})`)
       results.success++
     }
     catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unknown error'
-      console.error(chalk.red(`✗ 合并 Rules 失败 (${tool}) (Merge Rules failed (${tool}))`), errorMessage)
+      this.reportError(`合并 Rules 失败 (${tool}) (Merge Rules failed (${tool}))`, errorMessage)
       results.error++
       results.errors.push({ file: targetFile, error: errorMessage })
     }
@@ -142,21 +132,21 @@ export class RulesMigrator extends BaseMigrator {
    * 单个文件迁移
    */
   private async migrateSingleFile(tool: ToolKey, results: MigrationStats): Promise<void> {
-    const targetFile = this.getTargetFilePath(tool)
+    const targetFile = await this.getTargetDir(tool)
 
     try {
       const copyResult = await copyFileSafe(this.sourceDir, targetFile, this.options.autoOverwrite)
       if (copyResult.success) {
-        console.log(chalk.green(`✓ 复制 Rules 文件 → ${tool} (Copy Rules file → ${tool})`))
+        this.reportSuccess(`复制 Rules 文件 → ${tool} (Copy Rules file → ${tool})`)
         results.success++
       }
       else if (copyResult.skipped) {
-        console.log(chalk.yellow(`⚠ 跳过 Rules 文件 (${tool}): 文件已存在 (Skip Rules file (${tool}): File already exists)`))
+        this.logger.warn(`⚠ 跳过 Rules 文件 (${tool}): 文件已存在 (Skip Rules file (${tool}): File already exists)`)
         results.skipped++
       }
       else {
         const errorMessage = copyResult.error?.message || 'Unknown error'
-        console.error(chalk.red(`✗ 复制 Rules 文件失败 (${tool}) (Copy Rules file failed (${tool}))`), errorMessage)
+        this.reportError(`复制 Rules 文件失败 (${tool}) (Copy Rules file failed (${tool}))`, errorMessage)
         results.error++
         results.errors.push({ file: targetFile, error: errorMessage })
       }
@@ -165,7 +155,7 @@ export class RulesMigrator extends BaseMigrator {
       const errorMessage = error instanceof Error
         ? error.message
         : 'Unknown error'
-      console.error(chalk.red(`✗ 复制 Rules 文件失败 (${tool}) (Copy Rules file failed (${tool}))`), errorMessage)
+      this.reportError(`复制 Rules 文件失败 (${tool}) (Copy Rules file failed (${tool}))`, errorMessage)
       results.error++
       results.errors.push({ file: targetFile, error: errorMessage })
     }
