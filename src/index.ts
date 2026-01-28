@@ -14,6 +14,7 @@ import chalk from 'chalk'
 import inquirer from 'inquirer'
 import { getToolChoiceList, INTERNAL_CONFIG, isConfigTypeSupported } from './lib/config'
 import { loadUserConfig, mergeConfigs } from './lib/customConfig'
+import { AgentsMigrator } from './lib/migrators/agents'
 import { CommandsMigrator } from './lib/migrators/commands'
 import { MCPMigrator } from './lib/migrators/mcp'
 import { RulesMigrator } from './lib/migrators/rules'
@@ -21,6 +22,7 @@ import { SettingsMigrator } from './lib/migrators/settings'
 import { SkillsMigrator } from './lib/migrators/skills'
 import {
   expandHome,
+  getAgentsSourcePath,
   getCommandsSourcePath,
   getMCPSourcePath,
   getRuleSourcePath,
@@ -99,11 +101,12 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
       choices: [
         { name: 'Commands (命令/提示词)', value: 'commands' },
         { name: 'Skills (技能/工具)', value: 'skills' },
+        { name: 'Agents (智能体/代理)', value: 'agents' },
         { name: 'Rules (规则/指令)', value: 'rules' },
         { name: 'MCP (模型上下文协议)', value: 'mcp' },
         { name: 'Settings (设置/Hooks/权限)', value: 'settings' },
       ],
-      default: ['commands', 'skills', 'rules', 'mcp', 'settings'],
+      default: ['commands', 'skills', 'agents', 'rules', 'mcp', 'settings'],
     },
   ])
 
@@ -229,7 +232,7 @@ async function main(): Promise<void> {
     tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
   }
 
-  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'rules', 'mcp', 'settings']
+  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'agents', 'rules', 'mcp', 'settings']
 
   for (const configType of configTypes) {
     const supportedTools = options.tools.filter(supportedTool => isConfigTypeSupported(supportedTool, configType, toolsConfig))
@@ -257,6 +260,11 @@ async function main(): Promise<void> {
         case 'skills': {
           const skillsPath = await getSkillsSourcePath(sourceDir)
           migrator = new SkillsMigrator(skillsPath, supportedTools, options, toolsConfig)
+          break
+        }
+        case 'agents': {
+          const agentsPath = await getAgentsSourcePath(sourceDir)
+          migrator = new AgentsMigrator(agentsPath, supportedTools, options, toolsConfig)
           break
         }
         case 'mcp': {

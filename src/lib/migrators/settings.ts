@@ -4,7 +4,6 @@
 
 import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
-import { dirname } from 'node:path'
 import chalk from 'chalk'
 import { deepMerge } from '../utils/deepMerge'
 import { fileExists, readJSONFile, writeJSONFile } from '../utils/file'

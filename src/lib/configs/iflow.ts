@@ -23,5 +23,9 @@ export const iflowConfig: ToolConfig = {
     target: '~/.iflow/settings.json',
     convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.iflow/agents',
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
 }

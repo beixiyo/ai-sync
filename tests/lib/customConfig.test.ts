@@ -155,7 +155,7 @@ module.exports = {
       /** 验证现有工具配置修改成功 */
       expect(merged.tools?.cursor?.name).toBe('Custom Cursor')
       /** 验证现有工具其他配置保持不变 */
-      expect(merged.tools?.cursor?.supported).toEqual(['commands', 'skills', 'mcp'])
+      expect(merged.tools?.cursor?.supported).toEqual(['commands', 'skills', 'mcp', 'agents'])
     })
 
     it('should merge global config', () => {

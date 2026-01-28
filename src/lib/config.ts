@@ -61,6 +61,11 @@ export const CONFIG_TYPES: Record<ConfigType, ConfigTypeInfo> = {
     source: '.claude/settings.json',
     directCopy: ['claude', 'codebuddy'],
   },
+  agents: {
+    name: 'Agents',
+    source: '.claude/agents',
+    directCopy: ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex', 'codebuddy'],
+  },
 }
 
 /**

@@ -38,12 +38,14 @@ export function getToolPath(
   const toolPath = paths[tool as string] || `~/.${tool}`
   const basePath = expandHome(toolPath)
 
-  /** 为 OpenCode 特殊处理路径，保持 command/skill 的单数形式 */
+  /** 为 OpenCode 特殊处理路径，保持其最新的复数形式 (Ensures OpenCode uses its latest plural forms) */
   if (tool === 'opencode') {
     if (configType === 'commands')
-      return join(basePath, 'command')
+      return join(basePath, 'commands')
     if (configType === 'skills')
-      return join(basePath, 'skill')
+      return join(basePath, 'skills')
+    if (configType === 'agents')
+      return join(basePath, 'agents')
     if (configType === 'mcp')
       return join(basePath, 'opencode.jsonc')
   }
@@ -157,6 +159,14 @@ export async function getCommandsSourcePath(sourceDir: string): Promise<string> 
  */
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
   const claudePath = resolve(sourceDir, '.claude/skills')
+  return claudePath
+}
+
+/**
+ * 获取 Agent 源路径
+ */
+export async function getAgentsSourcePath(sourceDir: string): Promise<string> {
+  const claudePath = resolve(sourceDir, '.claude/agents')
   return claudePath
 }
 

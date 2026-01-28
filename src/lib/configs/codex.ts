@@ -22,5 +22,9 @@ export const codexConfig: ToolConfig = {
     target: '~/.codex/config.toml',
     convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.codex/agents',
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
 }

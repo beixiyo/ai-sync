@@ -77,7 +77,7 @@ describe('集成测试 (全面覆盖)', () => {
       await migrator.migrate()
 
       expect(await fileExists(join(testTargetDir, '.cursor', 'commands', 'test-command.md'))).toBe(true)
-      expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'command', 'test-command.md'))).toBe(true)
+      expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'commands', 'test-command.md'))).toBe(true)
       expect(await fileExists(join(testTargetDir, '.gemini', 'commands', 'test-command.toml'))).toBe(true)
       expect(await fileExists(join(testTargetDir, '.test-cli', 'commands', 'test-command.md'))).toBe(true)
     })
@@ -89,7 +89,7 @@ describe('集成测试 (全面覆盖)', () => {
       for (const tool of allToolsWithCustom) {
         let skillPath: string
         if (tool === 'opencode')
-          skillPath = join(testTargetDir, '.config', 'opencode', 'skill', 'test-skill.md')
+          skillPath = join(testTargetDir, '.config', 'opencode', 'skills', 'test-skill.md')
         else if (tool === 'test-cli')
           skillPath = join(testTargetDir, '.test-cli', 'skills', 'test-skill.md')
         else if (tool === 'codex')
@@ -170,14 +170,14 @@ describe('集成测试 (全面覆盖)', () => {
   })
 
   describe('各工具路径与格式准确性验证', () => {
-    it('openCode 应该使用正确的单数目录名 (command/skill) 和 .jsonc 扩展名', async () => {
+    it('openCode 应该使用正确的复数目录名 (commands/skills) 和 .jsonc 扩展名', async () => {
       const migratorC = new CommandsMigrator(join(testTargetDir, '.claude', 'commands'), ['opencode'], { autoOverwrite: true }, TOOL_CONFIGS)
       const migratorM = new MCPMigrator(join(testTargetDir, '.claude.json'), ['opencode'], { autoOverwrite: true }, TOOL_CONFIGS)
 
       await migratorC.migrate()
       await migratorM.migrate()
 
-      expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'command', 'test-command.md'))).toBe(true)
+      expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'commands', 'test-command.md'))).toBe(true)
       expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'opencode.jsonc'))).toBe(true)
     })
 

@@ -26,5 +26,9 @@ export const claudeConfig: ToolConfig = {
     target: '~/.claude/settings.json',
     merge: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'settings'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.claude/agents',
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'settings', 'agents'],
 }

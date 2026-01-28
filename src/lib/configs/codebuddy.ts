@@ -26,5 +26,9 @@ export const codebuddyConfig: ToolConfig = {
     target: '~/.codebuddy/settings.json',
     merge: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'settings'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.codebuddy/agents',
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'settings', 'agents'],
 }

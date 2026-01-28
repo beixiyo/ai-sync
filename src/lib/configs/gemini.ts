@@ -23,5 +23,9 @@ export const geminiConfig: ToolConfig = {
     target: '~/.gemini/settings.json',
     convert: true,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.gemini/agents',
+  },
+  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
 }

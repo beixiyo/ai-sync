@@ -10,7 +10,7 @@ export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' 
 /**
  * 配置类型
  */
-export type ConfigType = 'commands' | 'skills' | 'rules' | 'mcp' | 'settings'
+export type ConfigType = 'commands' | 'skills' | 'rules' | 'mcp' | 'settings' | 'agents'
 
 /**
  * 文件格式类型
@@ -40,6 +40,18 @@ export interface CommandConfig {
  * 技能配置
  */
 export interface SkillConfig {
+  source?: string
+  target?: string
+  /**
+   * 自定义内容转换逻辑 (Custom content transformation logic)
+   */
+  transform?: (content: string, fileName: string) => string | Promise<string>
+}
+
+/**
+ * Agent 配置
+ */
+export interface AgentConfig {
   source?: string
   target?: string
   /**
@@ -128,6 +140,7 @@ export interface ToolConfig {
   rules?: RuleConfig
   mcp: MCPConfig
   settings?: SettingsConfig
+  agents?: AgentConfig
   supported: ConfigType[]
 }
 

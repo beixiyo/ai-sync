@@ -16,5 +16,9 @@ export const cursorConfig: ToolConfig = {
     target: '~/.cursor/mcp.json',
     convert: true,
   },
-  supported: ['commands', 'skills', 'mcp'],
+  agents: {
+    source: '.claude/agents',
+    target: '~/.cursor/agents',
+  },
+  supported: ['commands', 'skills', 'mcp', 'agents'],
 }
