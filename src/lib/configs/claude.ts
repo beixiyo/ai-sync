@@ -11,12 +11,6 @@ export const claudeConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.claude/skills',
   },
-  rules: {
-    source: '.claude/CLAUDE.md',
-    format: 'markdown',
-    target: '~/.claude/CLAUDE.md',
-    merge: true,
-  },
   mcp: {
     source: '.claude.json',
     target: '~/.claude.json',
@@ -30,5 +24,5 @@ export const claudeConfig: ToolConfig = {
     source: '.claude/agents',
     target: '~/.claude/agents',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'settings', 'agents'],
+  supported: ['commands', 'skills', 'mcp', 'settings', 'agents'],
 }

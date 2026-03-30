@@ -3,10 +3,10 @@
  */
 
 import type { ConfigType, ToolKey } from './config'
-import { DEFAULT_TOOL_CONFIGS } from './configs'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { existsSync } from 'node:fs'
+import { DEFAULT_TOOL_CONFIGS } from './configs'
 import { fileExists } from './utils/file'
 
 /**
@@ -33,11 +33,15 @@ export function getToolPath(
 
   if (!typeConfig?.target) {
     /** 只有在完全没有配置时才使用极简默认值 (仅作为系统鲁棒性保底) */
-    return expandHome(`~/.${tool}/${configType === 'mcp' ? 'mcp.json' : configType}`)
+    return expandHome(`~/.${tool}/${configType === 'mcp'
+      ? 'mcp.json'
+      : configType}`)
   }
 
   const target = typeConfig.target
-  const firstPath = Array.isArray(target) ? target[0] : target
+  const firstPath = Array.isArray(target)
+    ? target[0]
+    : target
   return expandHome(firstPath)
 }
 
@@ -111,8 +115,10 @@ export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
   const jsonCPath = join(basePath, 'opencode.jsonc')
   const jsonPath = join(basePath, 'opencode.json')
 
-  if (await fileExists(jsonCPath)) return jsonCPath
-  if (await fileExists(jsonPath)) return jsonPath
+  if (await fileExists(jsonCPath))
+    return jsonCPath
+  if (await fileExists(jsonPath))
+    return jsonPath
 
   return jsonCPath // 默认返回 jsonc
 }
@@ -129,19 +135,22 @@ export async function getAgentsSourcePath(sourceDir: string): Promise<string> {
   return resolve(sourceDir, '.claude/agents')
 }
 
-export async function getSettingsSourcePath(sourceDir: string): Promise<string> {
-  return resolve(sourceDir, '.claude/settings.json')
+export async function getInstructionsSourcePath(sourceDir: string): Promise<string> {
+  const claudeMdPath = resolve(sourceDir, '.claude/CLAUDE.md')
+  if (await fileExists(claudeMdPath))
+    return claudeMdPath
+
+  const agentsMdPath = resolve(sourceDir, '.claude/AGENTS.md')
+  if (await fileExists(agentsMdPath))
+    return agentsMdPath
+
+  const rootMdPath = resolve(sourceDir, 'CLAUDE.md')
+  if (await fileExists(rootMdPath))
+    return rootMdPath
+
+  return claudeMdPath
 }
 
-export async function getRuleSourcePath(sourceDir: string): Promise<string> {
-  const priorityFiles = ['CLAUDE.md', 'AGENTS.md']
-  for (const fileName of priorityFiles) {
-    const filePath = resolve(sourceDir, '.claude', fileName)
-    if (await fileExists(filePath)) return filePath
-  }
-  for (const fileName of priorityFiles) {
-    const filePath = resolve(sourceDir, fileName)
-    if (await fileExists(filePath)) return filePath
-  }
-  return resolve(sourceDir, '.claude', 'CLAUDE.md')
+export async function getSettingsSourcePath(sourceDir: string): Promise<string> {
+  return resolve(sourceDir, '.claude/settings.json')
 }

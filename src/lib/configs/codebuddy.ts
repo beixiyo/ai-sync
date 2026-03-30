@@ -11,11 +11,9 @@ export const codebuddyConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.codebuddy/skills',
   },
-  rules: {
+  instructions: {
     source: '.claude/CLAUDE.md',
-    format: 'markdown',
     target: '~/.codebuddy/CODEBUDDY.md',
-    merge: true,
   },
   mcp: {
     source: '.claude.json',
@@ -30,5 +28,5 @@ export const codebuddyConfig: ToolConfig = {
     source: '.claude/agents',
     target: '~/.codebuddy/agents',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'settings', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'settings', 'agents'],
 }

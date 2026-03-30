@@ -13,11 +13,9 @@ export const codexConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.codex/skills',
   },
-  rules: {
+  instructions: {
     source: '.claude/CLAUDE.md',
-    format: 'markdown',
     target: '~/.codex/AGENTS.md',
-    merge: true,
   },
   mcp: {
     source: '.claude.json',
@@ -30,5 +28,5 @@ export const codexConfig: ToolConfig = {
     target: '~/.codex/agents',
     transform: convertToUniversalAgent,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'agents'],
 }

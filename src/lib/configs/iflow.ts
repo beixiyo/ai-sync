@@ -14,11 +14,9 @@ export const iflowConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.iflow/skills',
   },
-  rules: {
+  instructions: {
     source: '.claude/CLAUDE.md',
-    format: 'markdown',
     target: '~/.iflow/IFLOW.md',
-    merge: true,
   },
   mcp: {
     source: '.claude.json',
@@ -31,5 +29,5 @@ export const iflowConfig: ToolConfig = {
     target: '~/.iflow/agents',
     transform: convertToUniversalAgent,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'agents'],
 }

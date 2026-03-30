@@ -13,11 +13,9 @@ export const opencodeConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.config/opencode/skills',
   },
-  rules: {
+  instructions: {
     source: '.claude/CLAUDE.md',
-    format: 'markdown',
     target: '~/.config/opencode/AGENTS.md',
-    merge: true,
   },
   mcp: {
     source: '.claude.json',
@@ -30,5 +28,5 @@ export const opencodeConfig: ToolConfig = {
     target: '~/.config/opencode/agents',
     transform: convertToOpenCodeAgent,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'agents'],
 }

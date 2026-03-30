@@ -37,7 +37,7 @@
 创建 `~/.claude` 目录，包含以下子目录：
 - `~/.claude/commands/` - 存放自定义命令（Markdown 格式）
 - `~/.claude/skills/` - 存放技能模块（Markdown 格式）
-- `~/.claude/CLAUDE.md` - 存放基础规则
+- `~/.claude/CLAUDE.md` - 存放基础指令
 - `~/.claude.json` - MCP 配置文件
 
 ### 2. 执行迁移命令
@@ -111,6 +111,7 @@ export default defineConfig({
 |---------|--------|
 | **Commands** | Claude → Cursor/OpenCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换 |
 | **Skills** | 所有工具：直接复制 |
+| **Instructions** | `CLAUDE.md` → 各工具指令文件：Gemini（`GEMINI.md`）、Codex/OpenCode/Cursor/IFlow（`AGENTS.md`）、CodeBuddy（`CODEBUDDY.md`） |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow：自动格式转换 |
 
 ### 不支持同步的配置

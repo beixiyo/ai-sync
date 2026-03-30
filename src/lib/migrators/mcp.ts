@@ -23,7 +23,8 @@ export class MCPMigrator extends BaseMigrator {
 
       let targetConfig: any = {}
       if (await fileExists(targetPath)) {
-        if (isToml) targetConfig = await readTOMLFile(targetPath)
+        if (isToml)
+          targetConfig = await readTOMLFile(targetPath)
         else targetConfig = await readJSONFile(targetPath)
       }
 

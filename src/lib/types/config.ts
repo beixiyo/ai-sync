@@ -10,7 +10,7 @@ export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' 
 /**
  * 配置类型
  */
-export type ConfigType = 'commands' | 'skills' | 'rules' | 'mcp' | 'settings' | 'agents'
+export type ConfigType = 'commands' | 'skills' | 'instructions' | 'mcp' | 'settings' | 'agents'
 
 /**
  * 文件格式类型
@@ -61,21 +61,16 @@ export interface AgentConfig {
 }
 
 /**
- * 规则配置
+ * 指令文件配置（CLAUDE.md → GEMINI.md / AGENTS.md / CODEBUDDY.md）
  */
-export interface RuleConfig {
+export interface InstructionsConfig {
   source?: string
-  format?: FormatType
+  /** 目标指令文件路径 */
   target?: string | string[]
-  merge?: boolean
   /**
-   * 自定义单个文件转换逻辑 (Custom single file transformation logic)
+   * 自定义内容转换逻辑
    */
   transform?: (content: string, fileName: string) => string | Promise<string>
-  /**
-   * 自定义目录合并逻辑 (Custom directory merge logic)
-   */
-  customMerge?: (sourceDir: string, targetFile: string) => void | Promise<void>
 }
 
 /**
@@ -137,7 +132,7 @@ export interface ToolConfig {
   name: string
   commands: CommandConfig
   skills: SkillConfig
-  rules?: RuleConfig
+  instructions?: InstructionsConfig
   mcp: MCPConfig
   settings?: SettingsConfig
   agents?: AgentConfig

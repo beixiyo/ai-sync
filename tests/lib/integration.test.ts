@@ -1,10 +1,9 @@
 import type { ToolKey } from '@lib/config'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { TOOL_CONFIGS } from '@lib/config'
 import { CommandsMigrator } from '@lib/migrators/commands'
 import { MCPMigrator } from '@lib/migrators/mcp'
-import { RulesMigrator } from '@lib/migrators/rules'
 import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, ensureDirectoryExists, fileExists, removeDirectory, writeJSONFile } from '@lib/utils/file'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -23,7 +22,7 @@ vi.mock('node:os', async () => {
 })
 
 /** 所有支持的工具 */
-const allTools: ToolKey[] = ['cursor', 'claude', 'opencode', 'gemini', 'iflow', 'codex']
+const allTools: ToolKey[] = ['cursor', 'claude', 'codebuddy', 'opencode', 'gemini', 'iflow', 'codex']
 
 /** 添加测试用的自定义工具配置 (模拟使用 defineConfig 定义的场景) */
 const testCustomConfig = {
@@ -38,17 +37,11 @@ const testCustomConfig = {
     source: '.claude/skills',
     target: '~/.test-cli/skills',
   },
-  rules: {
-    source: '.temp/rules',
-    format: 'markdown',
-    target: '~/.test-cli/RULES.md',
-    merge: true,
-  },
   mcp: {
     source: '.claude.json',
     target: '~/.test-cli/mcp.json',
   },
-  supported: ['commands', 'skills', 'rules', 'mcp'],
+  supported: ['commands', 'skills', 'mcp'],
 }
 
 /** 所有测试工具（包括自定义工具） */
@@ -153,19 +146,32 @@ describe('集成测试 (全面覆盖)', () => {
   })
 
   describe('覆盖迁移与冲突处理 (autoOverwrite)', () => {
-    it('当 autoOverwrite 为 false 时，不应覆盖已存在的 Rules/Commands', async () => {
-      /** 预置一个已存在的文件 */
-      const targetPath = join(testTargetDir, '.config', 'opencode', 'AGENTS.md')
-      await ensureDirectoryExists(join(testTargetDir, '.config', 'opencode'))
+    it('当 autoOverwrite 为 false 时，不应覆盖已存在的 Commands', async () => {
+      const targetPath = join(testTargetDir, '.cursor', 'commands', 'test-command.md')
+      await ensureDirectoryExists(join(testTargetDir, '.cursor', 'commands'))
+      const { writeFile } = await import('node:fs/promises')
       await writeFile(targetPath, 'original content')
 
-      const sourceDir = join(testTargetDir, '.claude', 'CLAUDE.md')
-      const migrator = new RulesMigrator(sourceDir, ['opencode'], { autoOverwrite: false }, TOOL_CONFIGS)
+      const migrator = new CommandsMigrator(join(testTargetDir, '.claude', 'commands'), ['cursor'], { autoOverwrite: false }, TOOL_CONFIGS)
       const result = await migrator.migrate()
 
       expect(result.skipped).toBeGreaterThan(0)
       const content = await readFile(targetPath, 'utf-8')
       expect(content).toBe('original content')
+    })
+
+    it('当 autoOverwrite 为 false 时，不应覆盖已存在的 Skills', async () => {
+      const targetPath = join(testTargetDir, '.cursor', 'skills', 'test-skill.md')
+      await ensureDirectoryExists(join(testTargetDir, '.cursor', 'skills'))
+      const { writeFile } = await import('node:fs/promises')
+      await writeFile(targetPath, 'original skill')
+
+      const migrator = new SkillsMigrator(join(testTargetDir, '.claude', 'skills'), ['cursor'], { autoOverwrite: false }, TOOL_CONFIGS)
+      const result = await migrator.migrate()
+
+      expect(result.skipped).toBeGreaterThan(0)
+      const content = await readFile(targetPath, 'utf-8')
+      expect(content).toBe('original skill')
     })
   })
 
@@ -204,25 +210,6 @@ describe('集成测试 (全面覆盖)', () => {
       const content = await readFile(geminiFile, 'utf-8')
       expect(content).toContain('prompt =')
       expect(content).toContain('!{') // Shell 执行语法
-    })
-  })
-
-  describe('rules 优先级与合并测试', () => {
-    it('对于支持 merge 的工具 (如 test-cli)，应该将多规则合并为单文件', async () => {
-      /** 准备多规则目录 */
-      const rulesSourceDir = join(testTargetDir, '.temp', 'rules')
-      await ensureDirectoryExists(rulesSourceDir)
-      await writeFile(join(rulesSourceDir, 'rule1.mdc'), '测试规则 1')
-      await writeFile(join(rulesSourceDir, 'rule2.mdc'), '测试规则 2')
-
-      const migrator = new RulesMigrator(rulesSourceDir, ['test-cli'], { autoOverwrite: true }, TOOL_CONFIGS)
-      await migrator.migrate()
-
-      const rulesPath = join(testTargetDir, '.test-cli', 'RULES.md')
-      expect(await fileExists(rulesPath)).toBe(true)
-      const content = await readFile(rulesPath, 'utf-8')
-      expect(content).toContain('测试规则 1')
-      expect(content).toContain('测试规则 2')
     })
   })
 })

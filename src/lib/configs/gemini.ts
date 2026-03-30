@@ -14,11 +14,9 @@ export const geminiConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.gemini/skills',
   },
-  rules: {
+  instructions: {
     source: '.claude/CLAUDE.md',
-    format: 'markdown',
     target: '~/.gemini/GEMINI.md',
-    merge: true,
   },
   mcp: {
     source: '.claude.json',
@@ -31,5 +29,5 @@ export const geminiConfig: ToolConfig = {
     target: '~/.gemini/agents',
     transform: convertToUniversalAgent,
   },
-  supported: ['commands', 'skills', 'rules', 'mcp', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'agents'],
 }

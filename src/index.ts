@@ -16,16 +16,16 @@ import { getToolChoiceList, INTERNAL_CONFIG, isConfigTypeSupported } from './lib
 import { loadUserConfig, mergeConfigs } from './lib/customConfig'
 import { AgentsMigrator } from './lib/migrators/agents'
 import { CommandsMigrator } from './lib/migrators/commands'
+import { InstructionsMigrator } from './lib/migrators/instructions'
 import { MCPMigrator } from './lib/migrators/mcp'
-import { RulesMigrator } from './lib/migrators/rules'
 import { SettingsMigrator } from './lib/migrators/settings'
 import { SkillsMigrator } from './lib/migrators/skills'
 import {
   expandHome,
   getAgentsSourcePath,
   getCommandsSourcePath,
+  getInstructionsSourcePath,
   getMCPSourcePath,
-  getRuleSourcePath,
   getSettingsSourcePath,
   getSkillsSourcePath,
   resolveSourceDir,
@@ -41,7 +41,7 @@ function printHelp(): void {
   console.log('选项 (Options):')
   console.log('  -s, --source <dir>     源目录 (Source directory)（默认：~）')
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
-  console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,rules,mcp,settings）')
+  console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,mcp,settings）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
   console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
   console.log('  -h, --help             显示帮助信息 (Show help)')
@@ -102,11 +102,11 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
         { name: 'Commands (命令/提示词)', value: 'commands' },
         { name: 'Skills (技能/工具)', value: 'skills' },
         { name: 'Agents (智能体/代理)', value: 'agents' },
-        { name: 'Rules (规则/指令)', value: 'rules' },
+        { name: 'Instructions (指令文件 CLAUDE.md → GEMINI.md/AGENTS.md)', value: 'instructions' },
         { name: 'MCP (模型上下文协议)', value: 'mcp' },
         { name: 'Settings (设置/Hooks/权限)', value: 'settings' },
       ],
-      default: ['commands', 'skills', 'agents', 'rules', 'mcp', 'settings'],
+      default: ['commands', 'skills', 'agents', 'instructions', 'mcp', 'settings'],
     },
   ])
 
@@ -232,7 +232,7 @@ async function main(): Promise<void> {
     tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
   }
 
-  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'agents', 'rules', 'mcp', 'settings']
+  const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'agents', 'instructions', 'mcp', 'settings']
 
   for (const configType of configTypes) {
     const supportedTools = options.tools.filter(supportedTool => isConfigTypeSupported(supportedTool, configType, toolsConfig))
@@ -247,11 +247,6 @@ async function main(): Promise<void> {
       let migrator: BaseMigrator
 
       switch (configType) {
-        case 'rules': {
-          const ruleSourcePath = await getRuleSourcePath(sourceDir)
-          migrator = new RulesMigrator(ruleSourcePath, supportedTools, options, toolsConfig)
-          break
-        }
         case 'commands': {
           const commandsPath = await getCommandsSourcePath(sourceDir)
           migrator = new CommandsMigrator(commandsPath, supportedTools, options, toolsConfig)
@@ -265,6 +260,11 @@ async function main(): Promise<void> {
         case 'agents': {
           const agentsPath = await getAgentsSourcePath(sourceDir)
           migrator = new AgentsMigrator(agentsPath, supportedTools, options, toolsConfig)
+          break
+        }
+        case 'instructions': {
+          const instructionsPath = await getInstructionsSourcePath(sourceDir)
+          migrator = new InstructionsMigrator(instructionsPath, supportedTools, options, toolsConfig)
           break
         }
         case 'mcp': {

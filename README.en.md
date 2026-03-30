@@ -37,7 +37,7 @@ Automated script to migrate Claude configurations to different AI IDE tools
 Create `~/.claude` directory with the following subdirectories:
 - `~/.claude/commands/` - Custom commands (Markdown format)
 - `~/.claude/skills/` - Skill modules (Markdown format)
-- `~/.claude/CLAUDE.md` - Base rules
+- `~/.claude/CLAUDE.md` - Instructions
 - `~/.claude.json` - MCP configuration file
 
 ### 2. Quick Start
@@ -111,6 +111,7 @@ export default defineConfig({
 |-------------------|---------------------------|
 | **Commands** | Claude → Cursor/OpenCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion |
 | **Skills** | All tools: Direct copy |
+| **Instructions** | `CLAUDE.md` → tool-specific instruction files: Gemini (`GEMINI.md`), Codex/OpenCode/Cursor/IFlow (`AGENTS.md`), CodeBuddy (`CODEBUDDY.md`) |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow: Automatic format conversion |
 
 ### Unsupported Configurations

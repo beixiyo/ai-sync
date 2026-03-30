@@ -12,6 +12,10 @@ export const cursorConfig: ToolConfig = {
     source: '.claude/skills',
     target: '~/.cursor/skills',
   },
+  instructions: {
+    source: '.claude/CLAUDE.md',
+    target: '~/.cursor/AGENTS.md',
+  },
   mcp: {
     source: '.claude.json',
     target: '~/.cursor/mcp.json',
@@ -22,5 +26,5 @@ export const cursorConfig: ToolConfig = {
     target: '~/.cursor/agents',
     transform: convertToUniversalAgent,
   },
-  supported: ['commands', 'skills', 'mcp', 'agents'],
+  supported: ['commands', 'skills', 'instructions', 'mcp', 'agents'],
 }

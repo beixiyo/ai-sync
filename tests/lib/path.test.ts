@@ -65,11 +65,6 @@ describe('path utils', () => {
       expect(result).toBe('/home/user/.codebuddy/.mcp.json')
     })
 
-    it('should return global path for opencode rules', () => {
-      const result = normalizePath(getToolPath('opencode', 'rules')).replace(/^[A-Z]:/, '')
-      expect(result).toBe('/home/user/.config/opencode/AGENTS.md')
-    })
-
     it('should return global path for gemini commands', () => {
       const result = normalizePath(getToolPath('gemini', 'commands')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.gemini/commands')
@@ -78,6 +73,11 @@ describe('path utils', () => {
     it('should return global path for iflow skills', () => {
       const result = normalizePath(getToolPath('iflow', 'skills')).replace(/^[A-Z]:/, '')
       expect(result).toBe('/home/user/.iflow/skills')
+    })
+
+    it('should return first path for opencode mcp (array target)', () => {
+      const result = normalizePath(getToolPath('opencode', 'mcp')).replace(/^[A-Z]:/, '')
+      expect(result).toBe('/home/user/.config/opencode/opencode.jsonc')
     })
   })
 })
