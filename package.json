@@ -1,7 +1,7 @@
 {
   "name": "@jl-org/ai-sync",
   "version": "1.0.5",
-  "description": "Migrate Commands, Skills, Rules across Cursor, Claude Code, OpenCode, and other AI CLI tools. 在 Cursor、Claude Code、OpenCode 等工具中迁移 Commands、Skills、Rules...",
+  "description": "Migrate Commands, Skills, MCP across Cursor, Claude Code, OpenCode, Codex, and other AI CLI tools. 在 Cursor、Claude Code、OpenCode、Codex 等工具中迁移 Commands、Skills、MCP...",
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -39,7 +39,7 @@
   },
   "keywords": [
     "ai-sync",
-    "ide-rules",
+    "ide-config",
     "migration"
   ],
   "author": "CJL <2662442385@qq.com>",

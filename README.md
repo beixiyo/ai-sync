@@ -37,7 +37,7 @@
 创建 `~/.claude` 目录，包含以下子目录：
 - `~/.claude/commands/` - 存放自定义命令（Markdown 格式）
 - `~/.claude/skills/` - 存放技能模块（Markdown 格式）
-- `~/.claude/{CLAUDE.md,AGENTS.md}` - 存放 IDE 规则
+- `~/.claude/CLAUDE.md` - 存放基础规则
 - `~/.claude.json` - MCP 配置文件
 
 ### 2. 执行迁移命令
@@ -65,7 +65,6 @@ ai-sync --help
 开始迁移...
 ✓ 迁移 Commands... (2/2)
 ✓ 迁移 Skills... (1/1)
-✓ 迁移 Rules... (1/1)
 ✓ 迁移 MCP... (1/1)
 
 --- 迁移完成 ---
@@ -92,22 +91,12 @@ export default defineConfig({
     'test-cli': {
       name: 'Test CLI',
       // 支持的配置类型
-      supported: ['commands', 'skills', 'rules', 'mcp'],
+      supported: ['commands', 'skills', 'mcp'],
       // 具体的转换逻辑
       commands: {
         source: '.test-cli/commands',
         format: 'markdown',
         target: '~/.test-cli/commands',
-      },
-      rules: {
-        source: '.test-cli/rules',
-        target: '~/.test-cli/RULES.md',
-        // 开启合并模式：将多个规则合并为一个文件
-        merge: true,
-        // 高度自定义转换逻辑
-        transform: (content, fileName) => {
-          return `${content}\n\n> Generated from ${fileName}`
-        }
       }
     }
   }
@@ -122,8 +111,14 @@ export default defineConfig({
 |---------|--------|
 | **Commands** | Claude → Cursor/OpenCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换 |
 | **Skills** | 所有工具：直接复制 |
-| **Rules** | Cursor → 其他工具：.mdc 文件合并为单个 Markdown<br>其他工具 → Cursor：不迁移（Cursor 已支持自动检测 ~/.claude/CLAUDE.md） |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow：自动格式转换 |
+
+### 不支持同步的配置
+
+| 配置类型 | 原因 |
+|---------|------|
+| **Rules** | 仅 Cursor 和 Claude Code 支持带文件作用域的 Rules 系统，其余工具均不支持，同步意义不大。可通过在子目录放置 `AGENTS.md`（如 `project/src/api/AGENTS.md`）实现类似的目录级作用域 |
+| **Hooks** | 各工具 Hooks 实现完全不同：Claude Code / Codex / Cursor 使用 JSON + Shell，OpenCode 使用 TypeScript，格式和执行机制无法统一 |
 
 ### 路径规则
 
