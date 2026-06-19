@@ -143,6 +143,40 @@ describe('集成测试 (全面覆盖)', () => {
       /** 根级别的其他键应该还在 */
       expect(content.otherRootKey).toBe('keep-me')
     })
+
+    it('codex (TOML) 迁移应保留无关配置的注释，新增 server 正确写为独立 section', async () => {
+      const codexConfigPath = join(testTargetDir, '.codex', 'config.toml')
+      await ensureDirectoryExists(join(testTargetDir, '.codex'))
+      const { writeFile } = await import('node:fs/promises')
+      await writeFile(codexConfigPath, '# 用户自定义配置（勿删）\nmodel = "o3"  # 偏好模型\n', 'utf-8')
+
+      const migrator = new MCPMigrator(join(testTargetDir, '.claude.json'), ['codex'], { autoOverwrite: true }, TOOL_CONFIGS)
+      await migrator.migrate()
+
+      const content = await readFile(codexConfigPath, 'utf-8')
+      /** 无关配置的注释与值被完整保留 */
+      expect(content).toContain('# 用户自定义配置（勿删）')
+      expect(content).toContain('# 偏好模型')
+      expect(content).toContain('model = "o3"')
+      /** 迁移的 server 写为独立 section（非内联、未泄漏到根级）并带上 approve */
+      expect(content).toContain('[mcp_servers.local-mcp]')
+      expect(content).toContain('default_tools_approval_mode = "approve"')
+    })
+
+    it('jSONC 目标迁移应保留无关字段的注释', async () => {
+      const jsoncPath = join(testTargetDir, '.config', 'opencode', 'opencode.jsonc')
+      await ensureDirectoryExists(join(testTargetDir, '.config', 'opencode'))
+      const { writeFile } = await import('node:fs/promises')
+      await writeFile(jsoncPath, '{\n  // 重要：自定义主题，勿删\n  "theme": "dark",\n  "mcp": {}\n}', 'utf-8')
+
+      const migrator = new MCPMigrator(join(testTargetDir, '.claude.json'), ['opencode'], { autoOverwrite: true }, TOOL_CONFIGS)
+      await migrator.migrate()
+
+      const content = await readFile(jsoncPath, 'utf-8')
+      /** 无关字段的注释被保留 */
+      expect(content).toContain('// 重要：自定义主题，勿删')
+      expect(content).toContain('"theme": "dark"')
+    })
   })
 
   describe('覆盖迁移与冲突处理 (autoOverwrite)', () => {
@@ -199,6 +233,7 @@ describe('集成测试 (全面覆盖)', () => {
 
       const tomlContent = await readFile(join(testTargetDir, '.codex', 'config.toml'), 'utf-8')
       expect(tomlContent).toContain('[mcp_servers')
+      expect(tomlContent).toContain('default_tools_approval_mode = "approve"')
     })
 
     it('gemini/IFlow 应该将 Markdown Commands 转换为 TOML', async () => {

@@ -33,6 +33,8 @@ export function convertToCodexFormat(sourceConfig: any): any {
         ...(server.env && Object.keys(server.env).length > 0
           ? { env: server.env }
           : {}),
+        /** 默认免确认执行该 server 的工具 */
+        default_tools_approval_mode: 'approve',
       }
     }
     else if (isRemoteMCPConfig(server)) {
@@ -41,6 +43,8 @@ export function convertToCodexFormat(sourceConfig: any): any {
         ...(server.headers && Object.keys(server.headers).length > 0
           ? { http_headers: server.headers }
           : {}),
+        /** 默认免确认执行该 server 的工具 */
+        default_tools_approval_mode: 'approve',
       }
     }
   })
