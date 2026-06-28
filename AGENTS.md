@@ -75,13 +75,17 @@
       "type": "local",
       "command": [
         "npx",
+        "-y",
         "@upstash/context7-mcp"
       ],
+      "environment": {
+        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+      },
       "enabled": true
     },
     "figma-mcp": {
       "type": "remote",
-      "url": "http://127.0.0.1:3845/sse",
+      "url": "https://mcp.figma.com/mcp",
       "enabled": true
     },
     "apifox-mcp": {
@@ -90,7 +94,6 @@
         "npx",
         "apifox-mcp-server",
         "--project-id=xxx",
-        // 注意环境变量配法，官方配置会报错。@link https://github.com/anomalyco/opencode/issues/2978
         "{env:APIFOX_ACCESS_TOKEN}"
       ],
       "enabled": true
@@ -111,8 +114,12 @@
     "context7-mcp": {
       "command": "npx",
       "args": [
-        "@upstash/context7-mcp@v1.0.17"
-      ]
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
     }
   },
 }
@@ -126,8 +133,12 @@
     "context7-mcp": {
       "command": "npx",
       "args": [
-        "@upstash/context7-mcp@v1.0.17"
-      ]
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY"
+      }
     },
     "lsp-mcp": {
       "httpUrl": "http://127.0.0.1:9527/mcp",
@@ -143,19 +154,16 @@
 ### CodeX
 `~/.codex/config.toml`
 ```toml
-[mcp_servers.context7]
+[mcp_servers.context7-mcp]
 command = "npx"
 args = [
   "-y",
   "@upstash/context7-mcp"
 ]
-
-[mcp_servers.context7.env]
-MY_ENV_VAR = "MY_ENV_VALUE"
+env_vars = [ "CONTEXT7_API_KEY" ]
 
 [mcp_servers.figma]
 url = "https://mcp.figma.com/mcp"
-bearer_token_env_var = "FIGMA_OAUTH_TOKEN"
 http_headers = { X-Figma-Region = "us-east-1" }
 ```
 
@@ -195,8 +203,12 @@ http_headers = { X-Figma-Region = "us-east-1" }
     "context7-mcp": {
       "command": "npx",
       "args": [
-        "@upstash/context7-mcp@v1.0.17"
-      ]
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
     }
   }
 }

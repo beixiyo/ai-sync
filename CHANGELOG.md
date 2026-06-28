@@ -2,6 +2,13 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)
 
+## [1.0.7] - 2026-06-28
+
+### Fixed
+
+- 迁移 MCP 配置时正确转换环境变量引用：Claude Code `${VAR}` 会按目标工具转换为 OpenCode `{env:VAR}`、Codex `env_vars` / `env_http_headers` / `bearer_token_env_var`
+- 迁移到 Codex 时，若 MCP 参数中包含环境变量引用，会自动生成 `sh -lc` wrapper，避免 `args` 字面量导致环境变量无法展开
+
 ## [1.0.6] - 2026-06-19
 
 ### Changed
