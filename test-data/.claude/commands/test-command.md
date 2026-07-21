@@ -14,9 +14,7 @@ description: 测试命令
 
 ## 执行命令
 
-```bash
-echo "Hello, $1!"
-```
+!`echo "Hello, $1!"`
 
 ## 脚本引用
 

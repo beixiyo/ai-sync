@@ -1,6 +1,6 @@
 {
   "name": "@jl-org/ai-sync",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Migrate Commands, Skills, Instructions, MCP across Cursor, Claude Code, OpenCode, Codex, and other AI CLI tools. 在 Cursor、Claude Code、OpenCode、Codex 等工具中迁移 Commands、Skills、Instructions、MCP...",
   "type": "module",
   "main": "dist/index.cjs",

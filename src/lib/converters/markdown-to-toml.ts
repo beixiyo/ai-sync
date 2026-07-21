@@ -30,10 +30,10 @@ export async function convertMarkdownToTOML(sourcePath: string, targetPath: stri
 
   const description = frontmatter.description || ''
 
-  // 转换参数语法
+  /** 转换参数语法 */
   prompt = convertParameterSyntax(prompt)
 
-  // 移除不支持的配置
+  /** 移除不支持的配置 */
   prompt = removeUnsupportedConfig(prompt)
 
   const toml = generateTOML(description, prompt)
@@ -46,15 +46,12 @@ export async function convertMarkdownToTOML(sourcePath: string, targetPath: stri
  * 转换参数语法
  */
 function convertParameterSyntax(prompt: string): string {
-  // 转换参数语法
+  /** 转换参数语法 */
   prompt = prompt.replace(/\$ARGUMENTS/g, '{{args}}')
   prompt = prompt.replace(/\$([1-9][0-9]*)/g, '{{arg$1}}')
 
-  // 转换行内代码语法，处理转义的反引号
-  prompt = prompt.replace(/(?<!\\)`([^`\\]*(?:\\.[^`\\]*)*)`(?!\\)/g, '!{$1}')
-
-  // 转换代码块语法，确保正确处理复杂情况
-  prompt = prompt.replace(/```[\w]*\r?\n([\s\S]*?)\r?\n```/g, '!{$1}')
+  /** 仅转换 Claude Code 的 Shell 执行语法，保留普通行内代码 */
+  prompt = prompt.replace(/(?<!\\)!`([^`\\]*(?:\\.[^`\\]*)*)`(?!\\)/g, '!{$1}')
 
   return prompt
 }

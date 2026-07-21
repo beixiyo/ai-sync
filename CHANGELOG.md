@@ -2,6 +2,13 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)
 
+## [1.0.8] - 2026-07-21
+
+### Fixed
+
+- Markdown Command 转换为 Gemini / IFlow TOML 时，仅将 Claude Code 的 `` !`command` `` 语法转换为 `!{command}`，不再将普通行内代码误识别为 Shell 执行
+- Markdown Command 中的围栏代码块现在会原样保留，避免 Gemini / IFlow 将示例代码当作 Shell 命令执行
+
 ## [1.0.7] - 2026-06-28
 
 ### Fixed
