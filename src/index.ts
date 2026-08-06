@@ -135,7 +135,7 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
 /**
  * 解析命令行参数
  */
-async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
+async function parseCommandLineArgs(): Promise<ParsedCommandLine> {
   const { values, positionals } = parseArgs({
     options: {
       source: { type: 'string', short: 's' },
@@ -155,7 +155,10 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   }
 
   if (values.interactive || (!values.target && !values.source)) {
-    return null
+    return {
+      options: null,
+      config: values.config,
+    }
   }
 
   let tools: ToolKey[] = []
@@ -173,14 +176,14 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
   const sourceDir = values.source
     ? resolve(expandHome(values.source))
     : undefined
-  const config = values.config
-
   return {
-    tools,
-    configTypes,
-    autoOverwrite,
-    sourceDir,
-    config,
+    options: {
+      tools,
+      configTypes,
+      autoOverwrite,
+      sourceDir,
+    },
+    config: values.config,
   }
 }
 
@@ -190,10 +193,11 @@ async function parseCommandLineArgs(): Promise<CommandLineOptions | null> {
 async function main(): Promise<void> {
   const logger = new Logger()
 
-  let options = await parseCommandLineArgs()
+  const parsed = await parseCommandLineArgs()
+  let options = parsed.options
 
   /** 加载用户配置 */
-  const userConfig = await loadUserConfig(process.cwd(), options?.config)
+  const userConfig = await loadUserConfig(process.cwd(), parsed.config)
 
   /** 合并配置 */
   const mergedConfigs = mergeConfigs(INTERNAL_CONFIG, userConfig)
@@ -317,6 +321,13 @@ interface CommandLineOptions {
   configTypes?: ConfigType[]
   autoOverwrite: boolean
   sourceDir: string | undefined
+}
+
+/**
+ * 解析后的命令行状态
+ */
+interface ParsedCommandLine {
+  options: CommandLineOptions | null
   config?: string
 }
 
