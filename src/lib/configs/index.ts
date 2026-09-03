@@ -6,6 +6,7 @@ import { cursorConfig } from './cursor'
 import { geminiConfig } from './gemini'
 import { iflowConfig } from './iflow'
 import { opencodeConfig } from './opencode'
+import { zcodeConfig } from './zcode'
 
 export const DEFAULT_TOOL_CONFIGS: Record<ToolKey, ToolConfig> = {
   cursor: cursorConfig,
@@ -15,4 +16,5 @@ export const DEFAULT_TOOL_CONFIGS: Record<ToolKey, ToolConfig> = {
   gemini: geminiConfig,
   iflow: iflowConfig,
   codex: codexConfig,
+  zcode: zcodeConfig,
 }

@@ -27,6 +27,7 @@ Automated script to migrate Claude configurations to different AI IDE tools
 - CodeX
 - Gemini CLI
 - IFlow CLI
+- ZCode
 
 ## Quick Start
 
@@ -109,10 +110,11 @@ export default defineConfig({
 
 | Configuration Type | Transformation Description |
 |-------------------|---------------------------|
-| **Commands** | Claude → Cursor/OpenCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion |
+| **Commands** | Claude → Cursor/OpenCode/ZCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion |
 | **Skills** | All tools: Direct copy |
-| **Instructions** | `CLAUDE.md` → tool-specific instruction files: Gemini (`GEMINI.md`), Codex/OpenCode/Cursor/IFlow (`AGENTS.md`), CodeBuddy (`CODEBUDDY.md`) |
-| **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow: Automatic format conversion |
+| **Instructions** | `CLAUDE.md` → tool-specific instruction files: Gemini (`GEMINI.md`), Codex/OpenCode/Cursor/IFlow/ZCode (`AGENTS.md`), CodeBuddy (`CODEBUDDY.md`) |
+| **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode: Automatic format conversion |
+| **Settings** | Claude → CodeBuddy: Direct copy<br>Claude → ZCode: Only compatible Hook events (wrapped into `hooks.events` structure) |
 
 ### Unsupported Configurations
 

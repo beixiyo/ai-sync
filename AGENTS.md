@@ -216,6 +216,33 @@ http_headers = { X-Figma-Region = "us-east-1" }
 
 > **注意**: CodeBuddy 的配置与 Claude Code 完全一致，包括 Hooks 支持。配置文件路径为 `~/.codebuddy/.mcp.json` 或项目级别的 `.codebuddy/.mcp.json`。
 
+### ZCode
+`~/.zcode/cli/config.json`（注意比其他工具多一层 `cli/` 子目录），使用 `mcp.servers` 两层嵌套而非 `mcpServers`
+```json
+{
+  "mcp": {
+    "servers": {
+      "context7-mcp": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@upstash/context7-mcp"
+        ],
+        "env": {
+          "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+        }
+      },
+      "figma-mcp": {
+        "type": "http",
+        "url": "https://mcp.figma.com/mcp"
+      }
+    }
+  }
+}
+```
+
+> **注意**: ZCode 的本地/远程 server 字段与 Claude Code 基本一致，仅外层结构不同；远程配置的 `httpUrl` 需归一化为 `url`。兼容回退位置为 `~/.agents/mcp.json`（`mcpServers` 结构），但同一作用域下 `.zcode` 有配置时 `.agents` 会被整体跳过
+
 ## 注意事项规则
 - OpenCode 对 Claude Skills 兼容性有限，某些高级字段会被忽略
 - 路径处理需正确处理 `~` 展开和跨平台路径分隔符
@@ -227,3 +254,6 @@ http_headers = { X-Figma-Region = "us-east-1" }
 - 环境变量传递方式在不同工具间存在差异，需注意转换规则
 - **CodeBuddy 与 Claude Code 配置完全兼容**，支持所有 Claude Code 的特性（Commands、Skills、Rules、MCP、Hooks）
 - CodeBuddy 的配置目录为 `~/.codebuddy`，Rule 文件为 `CODEBUDDY.md`，MCP 配置为 `.mcp.json`
+- **ZCode 的 Commands / Skills / Agents 与 Claude Code 格式兼容**，直接复制即可；指令文件为 `~/.zcode/AGENTS.md`
+- ZCode 用户级 MCP/Hooks 配置位于 `~/.zcode/cli/config.json`（多一层 `cli/` 子目录），MCP 使用 `mcp.servers` 嵌套结构
+- ZCode Hooks 需包装为 `hooks.events` 结构并显式 `hooks.enabled: true`，仅迁移双方兼容的事件（SessionStart / UserPromptSubmit / PreToolUse / PermissionRequest / PostToolUse / PostToolUseFailure / Stop 的交集），Claude 专属事件（PreCompact / Notification / SubagentStop）与 permissions 不迁移

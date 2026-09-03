@@ -144,6 +144,34 @@ export function convertToGeminiFormat(sourceConfig: any): any {
   return { mcpServers: geminiMcp }
 }
 
+/**
+ * 转换为 ZCode 格式
+ * ZCode 使用 `mcp.servers` 两层嵌套结构，本地（command/args/env）字段与 Claude Code 一致
+ * 远程配置将 `httpUrl` 归一化为 `url`，其余字段原样保留
+ */
+export function convertToZCodeFormat(sourceConfig: any): any {
+  const mcpServers = sourceConfig.mcpServers || {}
+  const servers: Record<string, any> = {}
+
+  Object.entries(mcpServers as Record<string, MCPServerConfig>).forEach(([name, server]) => {
+    if (isRemoteMCPConfig(server)) {
+      const url = server.url || server.httpUrl
+      servers[name] = {
+        ...(url ? { url } : {}),
+        ...(server.type ? { type: server.type } : {}),
+        ...(server.headers && Object.keys(server.headers).length > 0
+          ? { headers: server.headers }
+          : {}),
+      }
+    }
+    else {
+      servers[name] = { ...(server as any) }
+    }
+  })
+
+  return { mcp: { servers } }
+}
+
 function normalizeCommand(command: string | string[]): string[] {
   return Array.isArray(command)
     ? command

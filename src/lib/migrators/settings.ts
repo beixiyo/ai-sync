@@ -33,6 +33,20 @@ export class SettingsMigrator extends BaseMigrator {
 
     try {
       const sourceContent = await readJSONFile<any>(this.sourceDir)
+
+      /** 工具自定义转换（如 ZCode 的 hooks 结构差异）(Tool-specific transform, e.g. ZCode hooks schema) */
+      const transform = toolConfig.settings.transform
+      const effectiveSource = transform
+        ? await transform(sourceContent)
+        : sourceContent
+
+      /** 转换后无可迁移内容时跳过写入，避免生成空配置 (Skip writing when nothing to migrate) */
+      if (!effectiveSource || Object.keys(effectiveSource).length === 0) {
+        results.success++
+        console.log(chalk.green(`✓ Settings 迁移完成: ${tool} (无可迁移内容 / Nothing to migrate)`))
+        return results
+      }
+
       let targetConfig: any = {}
 
       // 读取目标配置（如果存在）
@@ -43,17 +57,17 @@ export class SettingsMigrator extends BaseMigrator {
       // 根据配置决定是合并还是覆盖
       if (toolConfig.settings.merge && !this.options.autoOverwrite) {
         // 深度合并：保留目标文件的现有配置
-        targetConfig = deepMerge(targetConfig, sourceContent)
+        targetConfig = deepMerge(targetConfig, effectiveSource)
       }
       else if (this.options.autoOverwrite) {
         // 覆盖模式：替换关键配置项
-        for (const key in sourceContent) {
-          targetConfig[key] = sourceContent[key]
+        for (const key in effectiveSource) {
+          targetConfig[key] = effectiveSource[key]
         }
       }
       else {
         // 默认：深度合并
-        targetConfig = deepMerge(targetConfig, sourceContent)
+        targetConfig = deepMerge(targetConfig, effectiveSource)
       }
 
       await writeJSONFile(targetPath, targetConfig)

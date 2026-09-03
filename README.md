@@ -27,6 +27,7 @@
 - CodeX
 - Gemini CLI
 - IFlow CLI
+- ZCode
 
 ## 快速开始
 
@@ -109,10 +110,11 @@ export default defineConfig({
 
 | 配置类型 | 转换说明 |
 |---------|--------|
-| **Commands** | Claude → Cursor/OpenCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换 |
+| **Commands** | Claude → Cursor/OpenCode/ZCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换 |
 | **Skills** | 所有工具：直接复制 |
-| **Instructions** | `CLAUDE.md` → 各工具指令文件：Gemini（`GEMINI.md`）、Codex/OpenCode/Cursor/IFlow（`AGENTS.md`）、CodeBuddy（`CODEBUDDY.md`） |
-| **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow：自动格式转换 |
+| **Instructions** | `CLAUDE.md` → 各工具指令文件：Gemini（`GEMINI.md`）、Codex/OpenCode/Cursor/IFlow/ZCode（`AGENTS.md`）、CodeBuddy（`CODEBUDDY.md`） |
+| **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode：自动格式转换 |
+| **Settings** | Claude → CodeBuddy：直接复制<br>Claude → ZCode：仅迁移兼容的 Hooks 事件（`hooks.events` 结构自动包装） |
 
 ### 不支持同步的配置
 

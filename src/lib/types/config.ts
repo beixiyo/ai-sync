@@ -5,7 +5,7 @@
 /**
  * 支持的工具键名
  */
-export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' | 'iflow' | 'codex' | ({} & string)
+export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' | 'iflow' | 'codex' | 'zcode' | ({} & string)
 
 /**
  * 配置类型
@@ -123,6 +123,10 @@ export interface SettingsConfig {
    * 合并模式（深度合并现有配置）
    */
   merge?: boolean
+  /**
+   * 自定义 Settings 转换逻辑（如 ZCode 的 hooks 结构差异）(Custom settings transformation logic)
+   */
+  transform?: (config: any) => any | Promise<any>
 }
 
 /**

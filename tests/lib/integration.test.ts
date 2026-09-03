@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { TOOL_CONFIGS } from '@lib/config'
 import { CommandsMigrator } from '@lib/migrators/commands'
 import { MCPMigrator } from '@lib/migrators/mcp'
+import { SettingsMigrator } from '@lib/migrators/settings'
 import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, ensureDirectoryExists, fileExists, removeDirectory, writeJSONFile } from '@lib/utils/file'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -22,7 +23,7 @@ vi.mock('node:os', async () => {
 })
 
 /** 所有支持的工具 */
-const allTools: ToolKey[] = ['cursor', 'claude', 'codebuddy', 'opencode', 'gemini', 'iflow', 'codex']
+const allTools: ToolKey[] = ['cursor', 'claude', 'codebuddy', 'opencode', 'gemini', 'iflow', 'codex', 'zcode']
 
 /** 添加测试用的自定义工具配置 (模拟使用 defineConfig 定义的场景) */
 const testCustomConfig = {
@@ -73,6 +74,7 @@ describe('集成测试 (全面覆盖)', () => {
       expect(await fileExists(join(testTargetDir, '.config', 'opencode', 'commands', 'test-command.md'))).toBe(true)
       expect(await fileExists(join(testTargetDir, '.gemini', 'commands', 'test-command.toml'))).toBe(true)
       expect(await fileExists(join(testTargetDir, '.test-cli', 'commands', 'test-command.md'))).toBe(true)
+      expect(await fileExists(join(testTargetDir, '.zcode', 'commands', 'test-command.md'))).toBe(true)
     })
 
     it('应该成功同步 Skills 到所有工具', async () => {
@@ -176,6 +178,106 @@ describe('集成测试 (全面覆盖)', () => {
       /** 无关字段的注释被保留 */
       expect(content).toContain('// 重要：自定义主题，勿删')
       expect(content).toContain('"theme": "dark"')
+    })
+
+    it('zcode 迁移应写入 mcp.servers 嵌套结构，并保留 config.json 其他根键', async () => {
+      const zcodeConfigPath = join(testTargetDir, '.zcode', 'cli', 'config.json')
+      await ensureDirectoryExists(join(testTargetDir, '.zcode', 'cli'))
+      await writeJSONFile(zcodeConfigPath, {
+        provider: {
+          'builtin:zai': { enabled: true },
+        },
+      })
+
+      const migrator = new MCPMigrator(join(testTargetDir, '.claude.json'), ['zcode'], { autoOverwrite: true }, TOOL_CONFIGS)
+      await migrator.migrate()
+
+      const content = JSON.parse(await readFile(zcodeConfigPath, 'utf-8'))
+      /** 本地 server 字段与 Claude 一致，直接迁移 */
+      expect(content.mcp.servers['local-mcp']).toEqual({
+        command: 'npx',
+        args: ['mcp-server', '--api-key', 'test-api-key'],
+        env: {
+          NODE_ENV: 'development',
+        },
+      })
+      /** 远程 server 保留 url/type/headers */
+      expect(content.mcp.servers['remote-mcp']).toEqual({
+        url: 'http://localhost:3000/mcp',
+        type: 'http',
+        headers: {
+          Authorization: 'Bearer test-token',
+        },
+      })
+      /** 无关根键被完整保留 */
+      expect(content.provider['builtin:zai'].enabled).toBe(true)
+    })
+  })
+
+  describe('zCode Settings 迁移', () => {
+    it('仅迁移兼容的 Hooks 事件，且不破坏同文件中的 mcp 配置', async () => {
+      const zcodeConfigPath = join(testTargetDir, '.zcode', 'cli', 'config.json')
+      await ensureDirectoryExists(join(testTargetDir, '.zcode', 'cli'))
+      await writeJSONFile(zcodeConfigPath, {
+        mcp: {
+          servers: {
+            'keep-me': { command: 'node' },
+          },
+        },
+      })
+
+      const settingsPath = join(testTargetDir, '.claude', 'settings.json')
+      await writeJSONFile(settingsPath, {
+        hooks: {
+          PreToolUse: [
+            { matcher: 'Write', hooks: [{ type: 'command', command: 'node check.mjs' }] },
+          ],
+          PreCompact: [
+            { hooks: [{ command: 'compact.sh' }] },
+          ],
+        },
+        permissions: {
+          allow: ['Bash(*)'],
+        },
+      })
+
+      const migrator = new SettingsMigrator(settingsPath, ['zcode'], { autoOverwrite: false }, TOOL_CONFIGS)
+      await migrator.migrate()
+
+      const content = JSON.parse(await readFile(zcodeConfigPath, 'utf-8'))
+      /** Hooks 被包装为 events 结构并启用，type: command 被移除 */
+      expect(content.hooks).toEqual({
+        enabled: true,
+        events: {
+          PreToolUse: [
+            { matcher: 'Write', hooks: [{ command: 'node check.mjs' }] },
+          ],
+        },
+      })
+      /** Claude 专属字段不迁移 */
+      expect(content.permissions).toBeUndefined()
+      /** 同文件中已有的 mcp 配置不受影响 */
+      expect(content.mcp.servers['keep-me']).toBeDefined()
+    })
+
+    it('源配置无可迁移 Hooks 时不产生写入', async () => {
+      const zcodeConfigPath = join(testTargetDir, '.zcode', 'cli', 'config.json')
+      await ensureDirectoryExists(join(testTargetDir, '.zcode', 'cli'))
+
+      const settingsPath = join(testTargetDir, '.claude', 'settings.json')
+      await writeJSONFile(settingsPath, {
+        hooks: {
+          PreCompact: [
+            { hooks: [{ command: 'compact.sh' }] },
+          ],
+        },
+      })
+
+      const migrator = new SettingsMigrator(settingsPath, ['zcode'], { autoOverwrite: false }, TOOL_CONFIGS)
+      await migrator.migrate()
+
+      /** 无兼容事件时不创建空配置文件 */
+      expect(await fileExists(zcodeConfigPath)).toBe(false)
     })
   })
 

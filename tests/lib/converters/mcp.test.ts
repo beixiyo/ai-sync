@@ -1,4 +1,4 @@
-import { convertToCodexFormat, convertToOpenCodeFormat } from '@lib/converters/mcp'
+import { convertToCodexFormat, convertToOpenCodeFormat, convertToZCodeFormat } from '@lib/converters/mcp'
 import { describe, expect, it } from 'vitest'
 
 const envRef = (name: string) => `$${`{${name}}`}`
@@ -111,5 +111,67 @@ describe('mCP converter env handling', () => {
       env_vars: ['SOME_API_KEY', 'APIFOX_PROJECT_ID'],
       default_tools_approval_mode: 'approve',
     })
+  })
+})
+
+describe('zCode converter', () => {
+  it('wraps servers under mcp.servers and keeps local fields as-is', () => {
+    const result = convertToZCodeFormat({
+      mcpServers: {
+        'local-mcp': {
+          command: 'npx',
+          args: ['-y', 'some-mcp'],
+          env: {
+            NODE_ENV: 'development',
+          },
+        },
+      },
+    })
+
+    expect(result).toEqual({
+      mcp: {
+        servers: {
+          'local-mcp': {
+            command: 'npx',
+            args: ['-y', 'some-mcp'],
+            env: {
+              NODE_ENV: 'development',
+            },
+          },
+        },
+      },
+    })
+  })
+
+  it('normalizes remote httpUrl to url and keeps type/headers', () => {
+    const result = convertToZCodeFormat({
+      mcpServers: {
+        'remote-mcp': {
+          type: 'http',
+          url: 'https://example.com/mcp',
+          headers: {
+            Authorization: 'Bearer token',
+          },
+        },
+        'legacy-remote': {
+          httpUrl: 'https://legacy.example.com/mcp',
+        },
+      },
+    })
+
+    expect(result.mcp.servers['remote-mcp']).toEqual({
+      url: 'https://example.com/mcp',
+      type: 'http',
+      headers: {
+        Authorization: 'Bearer token',
+      },
+    })
+    expect(result.mcp.servers['legacy-remote']).toEqual({
+      url: 'https://legacy.example.com/mcp',
+    })
+  })
+
+  it('returns empty servers when source has no mcpServers', () => {
+    expect(convertToZCodeFormat({})).toEqual({ mcp: { servers: {} } })
   })
 })
