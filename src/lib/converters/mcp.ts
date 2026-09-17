@@ -1,5 +1,9 @@
 /**
  * MCP 转换器
+ *
+ * 统一源格式为 Claude Code（`~/.claude.json` 的 `mcpServers`），
+ * 转换为各工具的 MCP 配置结构：Codex（TOML `mcp_servers`）、OpenCode（`mcp`）、
+ * Gemini/IFlow（`httpUrl`）、ZCode（`mcp.servers` 两层嵌套）
  */
 
 import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig } from '../types/config'
@@ -23,7 +27,26 @@ export function isRemoteMCPConfig(config: MCPServerConfig): config is RemoteMCPC
 }
 
 /**
- * 转换为 Codex 格式
+ * Claude MCP → Codex MCP（写入 `~/.codex/config.toml` 的 `[mcp_servers.*]`）
+ *
+ * - `env` 中的 `${VAR}` 纯引用提取为 `env_vars`，静态值留在 `env`
+ * - args 里的 `${VAR}` 引用需经 shell 展开，整体改写为 `sh -lc 'exec ...'`
+ * - headers 中的 `Authorization: Bearer ${VAR}` 提取为 `bearer_token_env_var`
+ *
+ * @example
+ * ```txt
+ * 输入（Claude ~/.claude.json）:
+ *   { "mcpServers": { "context7": {
+ *     "command": "npx", "args": ["-y", "@upstash/context7-mcp"],
+ *     "env": { "KEY": "${CONTEXT7_API_KEY}" } } } }
+ *
+ * 输出（Codex ~/.codex/config.toml）:
+ *   [mcp_servers.context7]
+ *   command = "npx"
+ *   args = ["-y", "@upstash/context7-mcp"]
+ *   env_vars = ["CONTEXT7_API_KEY"]
+ *   default_tools_approval_mode = "approve"
+ * ```
  */
 export function convertToCodexFormat(sourceConfig: any): any {
   const mcpServers = sourceConfig.mcpServers || {}
@@ -80,7 +103,23 @@ export function convertToCodexFormat(sourceConfig: any): any {
 }
 
 /**
- * 转换为 OpenCode 格式
+ * Claude MCP → OpenCode MCP（写入 `~/.config/opencode/opencode.jsonc` 的 `mcp` 字段）
+ *
+ * - `command` 合并 `args` 为数组
+ * - 环境变量引用 `${VAR}` → `{env:VAR}`
+ * - 统一补 `type`（local/remote）和 `enabled: true`
+ *
+ * @example
+ * ```txt
+ * 输入（Claude）:
+ *   { "context7": { "command": "npx", "args": ["-y", "pkg"],
+ *     "env": { "KEY": "${MY_KEY}" } } }
+ *
+ * 输出（OpenCode）:
+ *   { "mcp": { "context7": { "type": "local",
+ *     "command": ["npx", "-y", "pkg"],
+ *     "environment": { "KEY": "{env:MY_KEY}" }, "enabled": true } } }
+ * ```
  */
 export function convertToOpenCodeFormat(sourceConfig: any): any {
   const mcpServers = sourceConfig.mcpServers || {}
@@ -120,7 +159,16 @@ export function convertToOpenCodeFormat(sourceConfig: any): any {
 }
 
 /**
- * 转换为 Gemini/IFlow 格式
+ * Claude MCP → Gemini/IFlow MCP（写入 `~/.gemini/settings.json` / `~/.iflow/settings.json`）
+ *
+ * 远程 server 的 `url` 归一化为 `httpUrl` 并标记 `type: "streamable-http"`，
+ * 本地 server 字段与 Claude 一致，原样保留
+ *
+ * @example
+ * ```txt
+ * 输入（Claude）:  { "lsp": { "type": "http", "url": "http://127.0.0.1:9527/mcp" } }
+ * 输出（Gemini）:  { "lsp": { "httpUrl": "http://127.0.0.1:9527/mcp", "type": "streamable-http" } }
+ * ```
  */
 export function convertToGeminiFormat(sourceConfig: any): any {
   const mcpServers = sourceConfig.mcpServers || {}
@@ -145,9 +193,16 @@ export function convertToGeminiFormat(sourceConfig: any): any {
 }
 
 /**
- * 转换为 ZCode 格式
- * ZCode 使用 `mcp.servers` 两层嵌套结构，本地（command/args/env）字段与 Claude Code 一致
- * 远程配置将 `httpUrl` 归一化为 `url`，其余字段原样保留
+ * Claude MCP → ZCode MCP（写入 `~/.zcode/cli/config.json`）
+ *
+ * `mcpServers` 平铺结构 → `mcp.servers` 两层嵌套；
+ * 远程配置将 `httpUrl` 归一化为 `url`，本地（command/args/env）字段与 Claude 一致原样保留
+ *
+ * @example
+ * ```txt
+ * 输入（Claude）:   { "mcpServers": { "context7": { "command": "npx", "args": ["pkg"] } } }
+ * 输出（ZCode）:   { "mcp": { "servers": { "context7": { "command": "npx", "args": ["pkg"] } } } }
+ * ```
  */
 export function convertToZCodeFormat(sourceConfig: any): any {
   const mcpServers = sourceConfig.mcpServers || {}

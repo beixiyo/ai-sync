@@ -243,6 +243,19 @@ http_headers = { X-Figma-Region = "us-east-1" }
 
 > **注意**: ZCode 的本地/远程 server 字段与 Claude Code 基本一致，仅外层结构不同；远程配置的 `httpUrl` 需归一化为 `url`。兼容回退位置为 `~/.agents/mcp.json`（`mcpServers` 结构），但同一作用域下 `.zcode` 有配置时 `.agents` 会被整体跳过
 
+### Pi
+Pi（pi-mono）核心极简，MCP 与 subagents 由第三方插件提供；路径原则是「有跨工具标准的用标准目录，pi 专属的用 `~/.pi/agent/`」：
+
+| 类型 | 路径 | 说明 |
+|------|------|------|
+| MCP | `~/.config/mcp/mcp.json` | pi-mcp-adapter 最高优先级读取的工具无关标准位，`mcpServers` 结构与 Claude Code 完全一致，零转换 |
+| Skills | `~/.agents/skills/` | pi 原生读取的 Agent Skills 标准目录（跨工具共享），也可用 `~/.pi/agent/skills/` |
+| Commands | `~/.pi/agent/prompts/` | prompt template，Markdown + frontmatter（`description`、`argument-hint`），参数语法 `$ARGUMENTS` / `$1` / `${1:-default}` 是 Claude 语法的超集；转换时丢弃 `allowed-tools`、`model` 等 Claude 专属字段 |
+| Instructions | `~/.pi/agent/AGENTS.md` | pi 全局 context 文件 |
+| Agents | `~/.pi/agent/agents/` | pi-subagents 插件的 agent 定义（YAML frontmatter + 系统提示）；转换时工具名映射（`Glob` → `find`，无法映射的丢弃），`model` 仅保留完整模型 ID、别名（`sonnet` 等）丢弃后继承默认模型 |
+
+> **注意**: Pi 的 subagents 行为配置位于 `~/.pi/agent/extensions/subagent/config.json`，属于本机行为设置，不参与同步
+
 ## 注意事项规则
 - OpenCode 对 Claude Skills 兼容性有限，某些高级字段会被忽略
 - 路径处理需正确处理 `~` 展开和跨平台路径分隔符

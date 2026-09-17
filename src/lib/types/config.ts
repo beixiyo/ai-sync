@@ -5,7 +5,7 @@
 /**
  * 支持的工具键名
  */
-export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' | 'iflow' | 'codex' | 'zcode' | ({} & string)
+export type ToolKey = 'cursor' | 'claude' | 'codebuddy' | 'opencode' | 'gemini' | 'iflow' | 'codex' | 'zcode' | 'pi' | ({} & string)
 
 /**
  * 配置类型

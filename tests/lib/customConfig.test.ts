@@ -196,7 +196,7 @@ module.exports = {
       const config: SyncConfig = {
         tools: {
           claude: {
-            rules: {
+            instructions: {
               transform: (content: string) => `${content}\n# Custom Rule Suffix`,
             },
           },
@@ -204,9 +204,9 @@ module.exports = {
       }
 
       const merged = mergeConfigs(INTERNAL_CONFIG, config)
-      expect(merged.tools?.claude?.rules?.transform).toBeDefined()
+      expect(merged.tools?.claude?.instructions?.transform).toBeDefined()
 
-      const transformed = await (merged.tools?.claude?.rules?.transform as any)('Original Content', 'test.md')
+      const transformed = await (merged.tools?.claude?.instructions?.transform as any)('Original Content', 'test.md')
       expect(transformed).toBe('Original Content\n# Custom Rule Suffix')
     })
 
@@ -224,17 +224,16 @@ module.exports = {
               source: '.test-cli/skills',
               target: '~/.test-cli/skills',
             },
-            rules: {
-              source: '.test-cli/rules',
-              format: 'markdown',
-              target: '~/.test-cli/RULES.md',
+            settings: {
+              source: '.test-cli/settings.json',
+              target: '~/.test-cli/settings.json',
               merge: true,
             },
             mcp: {
               source: '.test-cli.json',
               target: '~/.test-cli/settings.json',
             },
-            supported: ['commands', 'skills', 'rules', 'mcp'],
+            supported: ['commands', 'skills', 'settings', 'mcp'],
           },
         },
       }) as SyncConfig
@@ -242,7 +241,7 @@ module.exports = {
       expect(customConfig.tools?.['test-cli']).toBeDefined()
       expect(customConfig.tools?.['test-cli']?.name).toBe('Test CLI')
       expect(customConfig.tools?.['test-cli']?.commands?.format).toBe('markdown')
-      expect(customConfig.tools?.['test-cli']?.rules?.merge).toBe(true)
+      expect(customConfig.tools?.['test-cli']?.settings?.merge).toBe(true)
     })
 
     it('should have built-in codex support', () => {

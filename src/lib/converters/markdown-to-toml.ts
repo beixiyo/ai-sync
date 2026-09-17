@@ -1,5 +1,7 @@
 /**
  * Markdown 转 TOML 转换器
+ *
+ * Claude command（`~/.claude/commands/*.md`）→ Gemini/IFlow prompt（TOML 格式）
  */
 
 import { readFile, writeFile } from 'node:fs/promises'
@@ -9,7 +11,24 @@ import YAML from 'yaml'
 import { ensureDirectoryExists } from '../utils/file'
 
 /**
- * 将 Markdown 转换为 TOML 格式
+ * Claude command（Markdown）→ Gemini/IFlow prompt（写入 `~/.gemini/commands/*.toml` 等）
+ *
+ * - frontmatter 仅提取 `description`，正文进 `prompt` 字段
+ * - 参数语法转换：`$ARGUMENTS` → `{{args}}`，`$1` → `{{arg1}}`，`` !`cmd` `` → `!{cmd}`
+ * - 正文中的 `allowed-tools:` / `argument-hint:` / `context:` 行移除
+ *
+ * @example
+ * ```txt
+ * 输入（Claude ~/.claude/commands/review.md）:
+ *   ---
+ *   description: 审查代码
+ *   ---
+ *   审查 $1，先执行 !`git diff`
+ *
+ * 输出（Gemini ~/.gemini/commands/review.toml）:
+ *   description = "审查代码"
+ *   prompt = "审查 {{arg1}}，先执行 !{git diff}"
+ * ```
  */
 export async function convertMarkdownToTOML(sourcePath: string, targetPath: string): Promise<void> {
   const content = await readFile(sourcePath, 'utf-8')

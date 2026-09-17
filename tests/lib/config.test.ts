@@ -11,7 +11,7 @@ describe('config utils', () => {
     it('should return all tools with name', () => {
       const result = getToolChoiceList()
 
-      expect(result).toHaveLength(8)
+      expect(result).toHaveLength(9)
       expect(result).toEqual(
         expect.arrayContaining([
           { name: 'Cursor', value: 'cursor' },
@@ -22,6 +22,7 @@ describe('config utils', () => {
           { name: 'IFlow CLI', value: 'iflow' },
           { name: 'Codex', value: 'codex' },
           { name: 'ZCode', value: 'zcode' },
+          { name: 'Pi', value: 'pi' },
         ]),
       )
     })

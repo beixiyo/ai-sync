@@ -14,10 +14,21 @@ const ZCODE_HOOK_EVENTS = new Set([
 ])
 
 /**
- * 转换为 ZCode Settings 格式
+ * Claude settings → ZCode settings（写入 `~/.zcode/cli/config.json`）
  *
  * ZCode 的 Hooks 位于 `hooks.events` 下且必须显式 `hooks.enabled: true` 才生效；
- * 仅迁移双方都支持的事件，Claude 的 `permissions` / `model` 等专属 schema 不迁移
+ * 仅迁移双方都支持的事件（Claude 专属的 PreCompact / Notification / SubagentStop 丢弃），
+ * Claude 的 `permissions` / `model` 等专属 schema 不迁移
+ *
+ * @example
+ * ```txt
+ * 输入（Claude ~/.claude/settings.json）:
+ *   { "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "echo done" }] }] } }
+ *
+ * 输出（ZCode ~/.zcode/cli/config.json）:
+ *   { "hooks": { "enabled": true,
+ *     "events": { "Stop": [{ "hooks": [{ "command": "echo done" }] }] } } }
+ * ```
  */
 export function convertToZCodeSettingsFormat(sourceConfig: any): any {
   const sourceHooks = sourceConfig?.hooks
