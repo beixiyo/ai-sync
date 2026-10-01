@@ -244,11 +244,11 @@ http_headers = { X-Figma-Region = "us-east-1" }
 > **注意**: ZCode 的本地/远程 server 字段与 Claude Code 基本一致，仅外层结构不同；远程配置的 `httpUrl` 需归一化为 `url`。兼容回退位置为 `~/.agents/mcp.json`（`mcpServers` 结构），但同一作用域下 `.zcode` 有配置时 `.agents` 会被整体跳过
 
 ### Pi
-Pi（pi-mono）核心极简，MCP 与 subagents 由第三方插件提供；路径原则是「有跨工具标准的用标准目录，pi 专属的用 `~/.pi/agent/`」：
+Pi（pi-mono）0.99+ 内置原生 MCP；subagents 由第三方插件提供；路径原则是「有跨工具标准的用标准目录，pi 专属的用 `~/.pi/agent/`」：
 
 | 类型 | 路径 | 说明 |
 |------|------|------|
-| MCP | `~/.config/mcp/mcp.json` | pi-mcp-adapter 最高优先级读取的工具无关标准位，`mcpServers` 结构与 Claude Code 完全一致，零转换 |
+| MCP | `~/.pi/agent/mcp.json` | pi 原生 MCP 仅读此文件（及项目级 `.pi/mcp.json`），不读 `~/.config/mcp/mcp.json`；`mcpServers` 结构与 Claude Code 一致，仅为 `mcp.figma.com` 注入 `oauth.clientName: "Claude Code"`（Figma 只接受知名客户端注册）；同步时保留已有条目里的 `exposure/toolExposure/enabled/description/timeout`（`/mcp` 里改的设置）。安装 `pi-mcp-adapter` 会整体替换内置 MCP，须从 pi packages 移除 |
 | Skills | `~/.agents/skills/` | pi 原生读取的 Agent Skills 标准目录（跨工具共享），也可用 `~/.pi/agent/skills/` |
 | Commands | `~/.pi/agent/prompts/` | prompt template，Markdown + frontmatter（`description`、`argument-hint`），参数语法 `$ARGUMENTS` / `$1` / `${1:-default}` 是 Claude 语法的超集；转换时丢弃 `allowed-tools`、`model` 等 Claude 专属字段 |
 | Instructions | `~/.pi/agent/AGENTS.md` | pi 全局 context 文件 |

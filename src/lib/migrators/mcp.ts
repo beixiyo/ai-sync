@@ -28,10 +28,14 @@ export class MCPMigrator extends BaseMigrator {
         else targetConfig = await readJSONFile(targetPath)
       }
 
-      const transform = this.tools[tool]?.mcp?.transform
-      const converted = transform
+      const mcpConfig = this.tools[tool]?.mcp
+      const transform = mcpConfig?.transform
+      const transformed = transform
         ? await transform(sourceContent)
         : { mcpServers: { ...(sourceContent.mcpServers || {}) } }
+      const converted = mcpConfig?.preserveExisting
+        ? mcpConfig.preserveExisting(transformed, targetConfig)
+        : transformed
 
       if (this.options.autoOverwrite) {
         /** 如果是自动覆盖模式，直接替换关键配置项 (If auto-overwrite, replace key config items directly) */

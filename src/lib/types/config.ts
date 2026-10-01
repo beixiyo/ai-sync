@@ -84,6 +84,11 @@ export interface MCPConfig {
    * 自定义MCP配置转换逻辑 (Custom MCP configuration transformation logic)
    */
   transform?: (config: any) => any | Promise<any>
+  /**
+   * 转换后、写入前调用：把目标文件里用户在目标工具内改过、源里没有的设置带回转换结果
+   * (Carry target-side user settings missing from the source back into the converted result)
+   */
+  preserveExisting?: (converted: any, existing: any) => any
 }
 
 /**

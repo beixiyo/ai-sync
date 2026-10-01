@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 - 2026-10-01
+
+### Changed
+
+- Pi 的 MCP 目标改为 pi 原生配置 `~/.pi/agent/mcp.json`（pi 0.99+ 内置 MCP，不再读取 `~/.config/mcp/mcp.json`），不再兼容 `pi-mcp-adapter` 的旧路径；装有 `pi-mcp-adapter` 时它会整体替换内置 MCP，需从 pi packages 中移除
+
+### Added
+
+- 同步 MCP 到 Pi 时保留目标文件中已有 server 的 `exposure` / `toolExposure` / `enabled` / `description` / `timeout`（如在 pi `/mcp` 中修改的设置）；新增 `MCPConfig.preserveExisting` 钩子
+
 ## 1.0.10 - 2026-09-03
 
 ### Added

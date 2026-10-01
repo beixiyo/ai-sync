@@ -3,7 +3,7 @@
  *
  * 统一源格式为 Claude Code（`~/.claude.json` 的 `mcpServers`），
  * 转换为各工具的 MCP 配置结构：Codex（TOML `mcp_servers`）、OpenCode（`mcp`）、
- * Gemini/IFlow（`httpUrl`）、ZCode（`mcp.servers` 两层嵌套）
+ * Gemini/IFlow（`httpUrl`）、ZCode（`mcp.servers` 两层嵌套）、Pi（原生 `~/.pi/agent/mcp.json`）
  */
 
 import type { LocalMCPConfig, MCPServerConfig, RemoteMCPConfig } from '../types/config'
@@ -212,8 +212,12 @@ export function convertToZCodeFormat(sourceConfig: any): any {
     if (isRemoteMCPConfig(server)) {
       const url = server.url || server.httpUrl
       servers[name] = {
-        ...(url ? { url } : {}),
-        ...(server.type ? { type: server.type } : {}),
+        ...(url
+          ? { url }
+          : {}),
+        ...(server.type
+          ? { type: server.type }
+          : {}),
         ...(server.headers && Object.keys(server.headers).length > 0
           ? { headers: server.headers }
           : {}),
@@ -225,6 +229,80 @@ export function convertToZCodeFormat(sourceConfig: any): any {
   })
 
   return { mcp: { servers } }
+}
+
+/**
+ * 只接受已知客户端动态注册的远程 server：同步到 pi 时注入的 OAuth 客户端名
+ * 按 URL 主机名匹配（而非 server 名），改名不会失效
+ */
+const PI_OAUTH_CLIENT_NAMES: Record<string, string> = {
+  'mcp.figma.com': 'Claude Code',
+}
+
+/**
+ * Claude MCP → Pi 原生 MCP（写入 `~/.pi/agent/mcp.json`）
+ *
+ * `mcpServers` 结构与 Claude 一致，条目原样保留。唯一注入：Figma 等只接受已知客户端的
+ * 远程 server 补 `oauth.clientName`，否则 pi 以默认名 `pi` 动态注册会被拒。
+ *
+ * 注入放在转换层而非依赖目标文件已有内容：MCPMigrator 对 `mcpServers` 的合并是整条替换，
+ * 目标里手写的 oauth 会被源条目冲掉，所以必须由 ai-sync 每次生成。源里已显式写了 `oauth` 则尊重源
+ *
+ * @example
+ * ```txt
+ * 输入:  { "mcpServers": { "figma-mcp": { "type": "http", "url": "https://mcp.figma.com/mcp" } } }
+ * 输出:  { "mcpServers": { "figma-mcp": { "type": "http", "url": "https://mcp.figma.com/mcp",
+ *          "oauth": { "clientName": "Claude Code" } } } }
+ * ```
+ */
+export function convertToPiFormat(sourceConfig: any): any {
+  const mcpServers = sourceConfig.mcpServers || {}
+  const piMcp: Record<string, any> = {}
+
+  Object.entries(mcpServers as Record<string, MCPServerConfig>).forEach(([name, server]) => {
+    const url = isRemoteMCPConfig(server)
+      ? server.url || server.httpUrl
+      : undefined
+    const clientName = url && URL.canParse(url)
+      ? PI_OAUTH_CLIENT_NAMES[new URL(url).hostname]
+      : undefined
+
+    piMcp[name] = clientName && !('oauth' in server)
+      ? { ...(server as any), oauth: { clientName } }
+      : { ...(server as any) }
+  })
+
+  return { mcpServers: piMcp }
+}
+
+/**
+ * pi 中由用户在 `/mcp` 或手写维护、Claude 源里不存在的 server 级设置
+ */
+const PI_USER_SERVER_FIELDS = ['exposure', 'toolExposure', 'enabled', 'description', 'timeout'] as const
+
+/**
+ * 把已有 `~/.pi/agent/mcp.json` 中的用户设置带回 {@link convertToPiFormat} 的结果
+ *
+ * MCPMigrator 对 `mcpServers` 是整条替换，不处理的话 `/mcp` 里改的 exposure/enabled 每次同步都会丢。
+ * 仅处理两边都存在的 server（源里已删除的 server 随之消失）；转换结果里已有的字段优先，不被旧值覆盖
+ */
+export function preservePiServerSettings(converted: any, existing: any): any {
+  const existingServers = existing?.mcpServers
+  if (!existingServers || typeof existingServers !== 'object')
+    return converted
+
+  const mcpServers: Record<string, any> = {}
+  for (const [name, server] of Object.entries(converted.mcpServers || {}) as [string, any][]) {
+    const old = existingServers[name]
+    const kept = Object.fromEntries(
+      PI_USER_SERVER_FIELDS
+        .filter(field => old && field in old && !(field in server))
+        .map(field => [field, old[field]]),
+    )
+    mcpServers[name] = { ...server, ...kept }
+  }
+
+  return { ...converted, mcpServers }
 }
 
 function normalizeCommand(command: string | string[]): string[] {
