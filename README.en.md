@@ -100,6 +100,10 @@ export default defineConfig({
         format: 'markdown',
         target: '~/.test-cli/commands',
       }
+    },
+    // Modify an existing tool: disable Skills symlink mode and fall back to copy
+    cursor: {
+      skills: { symlink: false },
     }
   }
 })
@@ -112,7 +116,7 @@ export default defineConfig({
 | Configuration Type | Transformation Description |
 |-------------------|---------------------------|
 | **Commands** | Claude → Cursor/OpenCode/ZCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion<br>Claude → Pi: prompt templates (Claude-only frontmatter stripped) |
-| **Skills** | All tools: Direct copy |
+| **Skills** | Symlink mode by default: entries in each tool's skills directory are symlinked to the `~/.claude/skills/` source, existing copies are replaced safely (create-then-replace, no data loss on failure) and stale links are cleaned up; switching back to `symlink: false` unlinks leftovers and produces real copies |
 | **Instructions** | `CLAUDE.md` → tool-specific instruction files: Gemini (`GEMINI.md`), Codex/OpenCode/Cursor/IFlow/ZCode (`AGENTS.md`), CodeBuddy (`CODEBUDDY.md`), Pi (`~/.pi/agent/AGENTS.md`) |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode: Automatic format conversion<br>Claude → Pi: native MCP (written to `~/.pi/agent/mcp.json`), same structure; adds `oauth.clientName` for Figma and keeps per-server `exposure`/`enabled` etc. already set in pi |
 | **Settings** | Claude → CodeBuddy: Direct copy<br>Claude → ZCode: Only compatible Hook events (wrapped into `hooks.events` structure) |

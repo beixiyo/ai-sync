@@ -21,6 +21,9 @@ vi.mock('fs/promises', () => ({
   stat: vi.fn(),
   copyFile: vi.fn(),
   access: vi.fn(),
+  /** 默认 reject：copyFileSafe 将 lstat 失败视为非符号链接（.catch → null） */
+  lstat: vi.fn().mockRejectedValue(new Error('lstat: not mocked')),
+  rm: vi.fn(),
   constants: {
     F_OK: 0,
   },

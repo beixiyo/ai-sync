@@ -1,6 +1,6 @@
 # AI Agent 指南 - ai-sync 项目
 
-本文档为在 `ai-sync` 项目上工作的 AI Agent 提供必要信息。遵循这些指南以确保一致性和质量。
+本文档为在 `ai-sync` 项目上工作的 AI Agent 提供必要信息。遵循这些指南以确保一致性和质量
 
 ## 项目概览
 `ai-sync` 是一个基于 TypeScript 的 CLI 工具，用于在不同 AI 工具（如 Cursor、Claude Code、OpenCode 等）之间迁移 AI 配置（Commands、Skills、Rules、MCP）
@@ -57,11 +57,21 @@
 | Frontmatter | 不支持 | 不支持 | 支持 | 支持 | 支持 | 支持 |
 
 ## Skills
-各家基本一致，都是符合 Claude Code 技能模块规范的 Markdown 文件，仅仅更换文件夹
+
+各家基本一致，都是符合 Claude Code 技能模块规范的 Markdown 文件
+
+默认使用软链接模式：各工具 skills 目录中的每个条目（文件或目录）以符号链接指向 `~/.claude/skills/` 下的源，只有源保留真实文件；
+
+目标中已存在的同名复制内容会被安全替换（先建临时链接成功后再换，创建失败不丢旧内容），指向已删除源的失效链接会被清理，与源无关的条目不动，目标目录与源互为别名时整体跳过
+
+源条目本身是指向目标目录内部的链接（如 skills CLI 把真实文件装在 `~/.agents/skills`、`~/.claude/skills` 里放相对链接的交叉布局）时逐条目跳过，不碰目标处的真实数据
+
+配置 `tools.<tool>.skills.symlink: false` 回退复制模式时会自动解除遗留链接，避免沿链接写穿源（Windows 上目录使用 junction，无需管理员权限）
 
 ## MCP
 
 ### 优先级规则
+
 同步时按以下顺序优先选择 MCP 源：
 `~/.claude.json`（Claude Code MCP 配置文件，默认）
 
@@ -214,7 +224,7 @@ http_headers = { X-Figma-Region = "us-east-1" }
 }
 ```
 
-> **注意**: CodeBuddy 的配置与 Claude Code 完全一致，包括 Hooks 支持。配置文件路径为 `~/.codebuddy/.mcp.json` 或项目级别的 `.codebuddy/.mcp.json`。
+> **注意**: CodeBuddy 的配置与 Claude Code 完全一致，包括 Hooks 支持。配置文件路径为 `~/.codebuddy/.mcp.json` 或项目级别的 `.codebuddy/.mcp.json`
 
 ### ZCode
 `~/.zcode/cli/config.json`（注意比其他工具多一层 `cli/` 子目录），使用 `mcp.servers` 两层嵌套而非 `mcpServers`

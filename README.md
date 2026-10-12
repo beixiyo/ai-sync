@@ -100,6 +100,10 @@ export default defineConfig({
         format: 'markdown',
         target: '~/.test-cli/commands',
       }
+    },
+    // 修改现有工具的行为：关闭 Skills 软链接模式，回退为复制
+    cursor: {
+      skills: { symlink: false },
     }
   }
 })
@@ -112,7 +116,7 @@ export default defineConfig({
 | 配置类型 | 转换说明 |
 |---------|--------|
 | **Commands** | Claude → Cursor/OpenCode/ZCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换<br>Claude → Pi：prompt template（清洗 Claude 专属 frontmatter） |
-| **Skills** | 所有工具：直接复制 |
+| **Skills** | 默认软链接模式：各工具 skills 目录中的条目以符号链接指向 `~/.claude/skills/` 源，已有复制内容被安全替换（先建后换，失败不丢旧内容），失效链接自动清理；切回 `symlink: false` 时自动解除遗留链接、产出真实副本 |
 | **Instructions** | `CLAUDE.md` → 各工具指令文件：Gemini（`GEMINI.md`）、Codex/OpenCode/Cursor/IFlow/ZCode（`AGENTS.md`）、CodeBuddy（`CODEBUDDY.md`）、Pi（`~/.pi/agent/AGENTS.md`） |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode：自动格式转换<br>Claude → Pi：原生 MCP（写入 `~/.pi/agent/mcp.json`），结构一致，仅为 Figma 补 `oauth.clientName`，并保留 pi 中已设置的 `exposure`/`enabled` 等 |
 | **Settings** | Claude → CodeBuddy：直接复制<br>Claude → ZCode：仅迁移兼容的 Hooks 事件（`hooks.events` 结构自动包装） |

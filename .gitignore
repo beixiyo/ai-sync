@@ -11,4 +11,5 @@ dist
 *.test.js.snap
 *.test.tsx.snap
 *.test.ts.snap
-test-output
+test-output*
+test-output-failure

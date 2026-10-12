@@ -43,19 +43,19 @@ function printHelp(): void {
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
   console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,mcp,settings）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
-  console.log('  -y, --yes              自动覆盖 (Auto overwrite)')
+  console.log('  -y, --yes              自动覆盖 (Auto overwrite)（Skills 软链接模式不受此影响）')
   console.log('  -h, --help             显示帮助信息 (Show help)')
   console.log('  --interactive          强制交互模式 (Force interactive mode)（默认）\n')
   console.log('支持的工具 (Supported tools):')
-  console.log('  cursor      - Cursor')
-  console.log('  claude      - Claude Code')
-  console.log('  codebuddy   - CodeBuddy')
-  console.log('  opencode    - OpenCode')
-  console.log('  gemini      - Gemini CLI')
-  console.log('  iflow       - IFlow CLI')
-  console.log('  codex       - Codex')
-  console.log('  zcode       - ZCode')
-  console.log('  pi          - Pi\n')
+  console.log('  cursor')
+  console.log('  claude')
+  console.log('  codebuddy')
+  console.log('  opencode')
+  console.log('  gemini')
+  console.log('  iflow')
+  console.log('  codex')
+  console.log('  zcode')
+  console.log('  pi\n')
   console.log('示例 (Examples):')
   console.log('  pnpm migrate                    # 交互式模式 (Interactive mode)')
   console.log('  pnpm migrate -t cursor          # 迁移到 Cursor (Migrate to Cursor)')
@@ -121,7 +121,7 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
     {
       type: 'confirm',
       name: 'overwrite',
-      message: '覆盖已有文件？(Overwrite existing files?)',
+      message: '覆盖已有文件？(Overwrite existing files?)（Skills 默认软链接模式不受此影响 / not applied to Skills symlink mode）',
       default: true,
     },
   ])
@@ -216,18 +216,22 @@ async function main(): Promise<void> {
     sourceDir = await resolveSourceDir(options.sourceDir, defaultConfigDir)
   }
   catch (error) {
-    console.error(chalk.red(error instanceof Error
-      ? error.message
-      : 'Unknown path error'))
+    console.error(chalk.red(
+      error instanceof Error
+        ? error.message
+        : 'Unknown path error',
+    ))
     process.exit(1)
   }
 
   logger.section('开始迁移 (Start Migration)')
   console.log(chalk.cyan(`源目录 (Source directory): ${sourceDir}`))
   console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map(t => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
-  console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${options.autoOverwrite
-    ? '是 (Yes)'
-    : '否 (No)'}`))
+  console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${
+    options.autoOverwrite
+      ? '是 (Yes)'
+      : '否 (No)'
+  }`))
   console.log('')
 
   const results: MigrationResults = {

@@ -43,6 +43,16 @@ export interface SkillConfig {
   source?: string
   target?: string | string[]
   /**
+   * 软链接模式：目标 skills 目录中的每个条目以符号链接指向 Claude 源，不再复制内容
+   *
+   * 目标中已存在的同名复制文件/目录（或指向他处的旧链接）会被删除并替换为软链接；
+   * 指向源目录但源已删除的失效链接会被清理；与源无关的条目保持不动
+   * 此模式不受 `autoOverwrite` 影响，配置了 `transform` 时自动回退为转换复制
+   *
+   * @default true
+   */
+  symlink?: boolean
+  /**
    * 自定义内容转换逻辑 (Custom content transformation logic)
    */
   transform?: (content: string, fileName: string) => string | Promise<string>
