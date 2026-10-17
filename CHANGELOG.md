@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.1 - 2026-10-17
+
+### Fixed
+
+- Codex 转换不再丢弃带默认值的 `${VAR:-default}` 引用：`env` 中的此类值此前既不进 `env_vars` 也不进静态 `env`，整条丢失；现统一转发变量名（Codex 无默认值语法，默认值丢弃，与 args 的 shell 包装行为一致）
+- Codex 转换对 headers 中带默认值的 `Authorization: Bearer ${VAR:-x}` 与纯引用同样提取为 `bearer_token_env_var` / `env_http_headers`，不再作为字面量落入 `http_headers`
+
+### Changed
+
+- OpenCode 的 `enabled` 尊重源值（如 `~/.claude.json` 中 `"enabled": false` 同步后保持 `false`），缺省仍写 `true`
+- Codex 转发源中声明的 `enabled`（缺省不写，保持 Codex 默认启用）
+- 同步到 Pi 时保留的 server 级字段扩充 `cwd` / `oauth` / `auth`（`pi mcp add --cwd/--oauth-*` 写入或手写维护，Claude 源格式无对应物）
+
 ## 1.3.0 - 2026-10-12
 
 ### Added

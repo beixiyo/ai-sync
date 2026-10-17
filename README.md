@@ -102,7 +102,7 @@ export default defineConfig({
       }
     },
     // 修改现有工具的行为：关闭 Skills 软链接模式，回退为复制
-    cursor: {
+    'cursor': {
       skills: { symlink: false },
     }
   }

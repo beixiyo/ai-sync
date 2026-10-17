@@ -258,7 +258,7 @@ Pi（pi-mono）0.99+ 内置原生 MCP；subagents 由第三方插件提供；路
 
 | 类型 | 路径 | 说明 |
 |------|------|------|
-| MCP | `~/.pi/agent/mcp.json` | pi 原生 MCP 仅读此文件（及项目级 `.pi/mcp.json`），不读 `~/.config/mcp/mcp.json`；`mcpServers` 结构与 Claude Code 一致，仅为 `mcp.figma.com` 注入 `oauth.clientName: "Claude Code"`（Figma 只接受知名客户端注册）；同步时保留已有条目里的 `exposure/toolExposure/enabled/description/timeout`（`/mcp` 里改的设置）。安装 `pi-mcp-adapter` 会整体替换内置 MCP，须从 pi packages 移除 |
+| MCP | `~/.pi/agent/mcp.json` | pi 原生 MCP 仅读此文件（及项目级 `.pi/mcp.json`），不读 `~/.config/mcp/mcp.json`；`mcpServers` 结构与 Claude Code 一致，仅为 `mcp.figma.com` 注入 `oauth.clientName: "Claude Code"`（Figma 只接受知名客户端注册）；同步时保留已有条目里的 `exposure/toolExposure/enabled/description/timeout/cwd/oauth/auth`（`/mcp`、`pi mcp add` 里改的设置）。安装 `pi-mcp-adapter` 会整体替换内置 MCP，须从 pi packages 移除 |
 | Skills | `~/.agents/skills/` | pi 原生读取的 Agent Skills 标准目录（跨工具共享），也可用 `~/.pi/agent/skills/` |
 | Commands | `~/.pi/agent/prompts/` | prompt template，Markdown + frontmatter（`description`、`argument-hint`），参数语法 `$ARGUMENTS` / `$1` / `${1:-default}` 是 Claude 语法的超集；转换时丢弃 `allowed-tools`、`model` 等 Claude 专属字段 |
 | Instructions | `~/.pi/agent/AGENTS.md` | pi 全局 context 文件 |

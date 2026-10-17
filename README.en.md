@@ -102,7 +102,7 @@ export default defineConfig({
       }
     },
     // Modify an existing tool: disable Skills symlink mode and fall back to copy
-    cursor: {
+    'cursor': {
       skills: { symlink: false },
     }
   }

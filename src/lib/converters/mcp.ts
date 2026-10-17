@@ -29,9 +29,11 @@ export function isRemoteMCPConfig(config: MCPServerConfig): config is RemoteMCPC
 /**
  * Claude MCP → Codex MCP（写入 `~/.codex/config.toml` 的 `[mcp_servers.*]`）
  *
- * - `env` 中的 `${VAR}` 纯引用提取为 `env_vars`，静态值留在 `env`
+ * - `env` 中的 `${VAR}` 纯引用提取为 `env_vars`，静态值留在 `env`；
+ *   `${VAR:-default}` 引用同样转发变量名（默认值丢失，Codex 无默认值语法）
  * - args 里的 `${VAR}` 引用需经 shell 展开，整体改写为 `sh -lc 'exec ...'`
  * - headers 中的 `Authorization: Bearer ${VAR}` 提取为 `bearer_token_env_var`
+ * - 源里声明 `enabled` 时原样转发，缺省不写（Codex 默认即启用）
  *
  * @example
  * ```txt
@@ -57,8 +59,8 @@ export function convertToCodexFormat(sourceConfig: any): any {
       const [command, ...commandArgs] = normalizeCommand(server.command)
       const args = [...commandArgs, ...(server.args || [])]
       const env = server.env || {}
-      const envVars = collectPureEnvVars(env)
-      const staticEnv = omitPureEnvVars(env)
+      const envVars = collectEnvRefNames(env)
+      const staticEnv = omitEnvRefValues(env)
       const argEnvVars = collectEnvRefs([command, ...args])
       const hasArgEnvRefs = argEnvVars.length > 0
 
@@ -74,6 +76,9 @@ export function convertToCodexFormat(sourceConfig: any): any {
           : {}),
         ...(Object.keys(staticEnv).length > 0
           ? { env: staticEnv }
+          : {}),
+        ...(server.enabled !== undefined
+          ? { enabled: server.enabled }
           : {}),
         /** 默认免确认执行该 server 的工具 */
         default_tools_approval_mode: 'approve',
@@ -93,6 +98,9 @@ export function convertToCodexFormat(sourceConfig: any): any {
         ...(Object.keys(httpHeaders).length > 0
           ? { http_headers: httpHeaders }
           : {}),
+        ...(server.enabled !== undefined
+          ? { enabled: server.enabled }
+          : {}),
         /** 默认免确认执行该 server 的工具 */
         default_tools_approval_mode: 'approve',
       }
@@ -107,7 +115,7 @@ export function convertToCodexFormat(sourceConfig: any): any {
  *
  * - `command` 合并 `args` 为数组
  * - 环境变量引用 `${VAR}` → `{env:VAR}`
- * - 统一补 `type`（local/remote）和 `enabled: true`
+ * - 统一补 `type`（local/remote）；`enabled` 尊重源值，缺省 `true`
  *
  * @example
  * ```txt
@@ -137,7 +145,7 @@ export function convertToOpenCodeFormat(sourceConfig: any): any {
         ...(server.env && Object.keys(server.env).length > 0
           ? { environment: convertRecordEnvRefsToOpenCode(server.env) }
           : {}),
-        enabled: true,
+        enabled: server.enabled ?? true,
       }
     }
     else if (isRemoteMCPConfig(server)) {
@@ -147,11 +155,11 @@ export function convertToOpenCodeFormat(sourceConfig: any): any {
         ...(server.headers && Object.keys(server.headers).length > 0
           ? { headers: convertRecordEnvRefsToOpenCode(server.headers) }
           : {}),
-        enabled: true,
+        enabled: server.enabled ?? true,
       }
     }
     else {
-      opencodeMcp[name] = { ...(server as any), enabled: true }
+      opencodeMcp[name] = { ...(server as any), enabled: (server as any).enabled ?? true }
     }
   })
 
@@ -243,7 +251,7 @@ const PI_OAUTH_CLIENT_NAMES: Record<string, string> = {
  * Claude MCP → Pi 原生 MCP（写入 `~/.pi/agent/mcp.json`）
  *
  * `mcpServers` 结构与 Claude 一致，条目原样保留。唯一注入：Figma 等只接受已知客户端的
- * 远程 server 补 `oauth.clientName`，否则 pi 以默认名 `pi` 动态注册会被拒。
+ * 远程 server 补 `oauth.clientName`，否则 pi 以默认名 `pi` 动态注册会被拒
  *
  * 注入放在转换层而非依赖目标文件已有内容：MCPMigrator 对 `mcpServers` 的合并是整条替换，
  * 目标里手写的 oauth 会被源条目冲掉，所以必须由 ai-sync 每次生成。源里已显式写了 `oauth` 则尊重源
@@ -276,14 +284,17 @@ export function convertToPiFormat(sourceConfig: any): any {
 }
 
 /**
- * pi 中由用户在 `/mcp` 或手写维护、Claude 源里不存在的 server 级设置
+ * pi 中由用户在 `/mcp`、`pi mcp add` 或手写维护、Claude 源里不存在的 server 级设置
+ *
+ * `oauth`（含 `authServerMetadataUrl` 等）与 `auth` 是 pi 独有的认证字段；`cwd` 由
+ * `pi mcp add --cwd` 写入，Claude 源格式均无对应物
  */
-const PI_USER_SERVER_FIELDS = ['exposure', 'toolExposure', 'enabled', 'description', 'timeout'] as const
+const PI_USER_SERVER_FIELDS = ['exposure', 'toolExposure', 'enabled', 'description', 'timeout', 'cwd', 'oauth', 'auth'] as const
 
 /**
  * 把已有 `~/.pi/agent/mcp.json` 中的用户设置带回 {@link convertToPiFormat} 的结果
  *
- * MCPMigrator 对 `mcpServers` 是整条替换，不处理的话 `/mcp` 里改的 exposure/enabled 每次同步都会丢。
+ * MCPMigrator 对 `mcpServers` 是整条替换，不处理的话 `/mcp` 里改的 exposure/enabled 每次同步都会丢
  * 仅处理两边都存在的 server（源里已删除的 server 随之消失）；转换结果里已有的字段优先，不被旧值覆盖
  */
 export function preservePiServerSettings(converted: any, existing: any): any {
@@ -311,16 +322,17 @@ function normalizeCommand(command: string | string[]): string[] {
     : [command]
 }
 
-function collectPureEnvVars(env: Record<string, string>): string[] {
+function collectEnvRefNames(env: Record<string, string>): string[] {
   return Object.values(env).flatMap((value) => {
     const match = value.match(PURE_ENV_REF_RE)
-    return match && !match[2]
+    /** `${VAR:-default}` 同样转发变量名：Codex 无默认值语法，留在静态 env 只会变成字面量 */
+    return match
       ? [match[1]]
       : []
   })
 }
 
-function omitPureEnvVars(env: Record<string, string>): Record<string, string> {
+function omitEnvRefValues(env: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
     Object.entries(env).filter(([, value]) => !PURE_ENV_REF_RE.test(value)),
   )
@@ -353,13 +365,13 @@ function splitHeadersForCodex(headers: Record<string, string>): {
 
   for (const [key, value] of Object.entries(headers)) {
     const bearerMatch = value.match(BEARER_ENV_REF_RE)
-    if (key.toLowerCase() === 'authorization' && bearerMatch && !bearerMatch[2]) {
+    if (key.toLowerCase() === 'authorization' && bearerMatch) {
       bearerTokenEnvVar = bearerMatch[1]
       continue
     }
 
     const pureMatch = value.match(PURE_ENV_REF_RE)
-    if (pureMatch && !pureMatch[2]) {
+    if (pureMatch) {
       envHttpHeaders[key] = pureMatch[1]
       continue
     }

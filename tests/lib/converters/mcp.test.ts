@@ -2,6 +2,7 @@ import { convertToCodexFormat, convertToOpenCodeFormat, convertToPiFormat, conve
 import { describe, expect, it } from 'vitest'
 
 const envRef = (name: string) => `$${`{${name}}`}`
+const envRefDefault = (name: string, fallback: string) => `$${`{${name}:-${fallback}}`}`
 
 describe('mCP converter env handling', () => {
   it('converts Claude env expansion to OpenCode env placeholders', () => {
@@ -93,6 +94,77 @@ describe('mCP converter env handling', () => {
       },
       default_tools_approval_mode: 'approve',
     })
+  })
+
+  it('forwards env refs with defaults via env_vars instead of dropping them', () => {
+    const result = convertToCodexFormat({
+      mcpServers: {
+        'default-env': {
+          command: 'npx',
+          args: ['-y', 'mcp'],
+          env: {
+            TOKEN: envRefDefault('MY_TOKEN', 'fallback'),
+            STATIC: 'keep',
+          },
+        },
+      },
+    })
+
+    expect(result.mcp_servers['default-env']).toEqual({
+      command: 'npx',
+      args: ['-y', 'mcp'],
+      env_vars: ['MY_TOKEN'],
+      env: { STATIC: 'keep' },
+      default_tools_approval_mode: 'approve',
+    })
+  })
+
+  it('forwards headers with default refs as env-backed fields instead of literals', () => {
+    const result = convertToCodexFormat({
+      mcpServers: {
+        api: {
+          type: 'http',
+          url: 'https://example.com/mcp',
+          headers: {
+            'Authorization': `Bearer ${envRefDefault('TOKEN', 'x')}`,
+            'X-Feature': envRefDefault('FEATURE', 'y'),
+          },
+        },
+      },
+    })
+
+    expect(result.mcp_servers.api).toEqual({
+      url: 'https://example.com/mcp',
+      bearer_token_env_var: 'TOKEN',
+      env_http_headers: { 'X-Feature': 'FEATURE' },
+      default_tools_approval_mode: 'approve',
+    })
+  })
+
+  it('forwards source enabled=false to codex and omits it when absent', () => {
+    const result = convertToCodexFormat({
+      mcpServers: {
+        'db-mcp': { command: 'npx', enabled: false },
+        'remote-mcp': { type: 'http', url: 'https://example.com/mcp', enabled: false },
+        'plain-mcp': { command: 'npx' },
+      },
+    })
+
+    expect(result.mcp_servers['db-mcp'].enabled).toBe(false)
+    expect(result.mcp_servers['remote-mcp'].enabled).toBe(false)
+    expect(result.mcp_servers['plain-mcp'].enabled).toBeUndefined()
+  })
+
+  it('keeps OpenCode source enabled=false and defaults to true when absent', () => {
+    const result = convertToOpenCodeFormat({
+      mcpServers: {
+        'db-mcp': { command: 'npx', enabled: false },
+        'on-mcp': { command: 'npx' },
+      },
+    })
+
+    expect(result.mcp['db-mcp'].enabled).toBe(false)
+    expect(result.mcp['on-mcp'].enabled).toBe(true)
   })
 
   it('uses a shell wrapper when Codex args need env expansion', () => {
@@ -232,6 +304,31 @@ describe('pi MCP 用户设置保留', () => {
     expect(result.mcpServers.figma.oauth).toEqual({ clientName: 'Claude Code' })
     /** 源里已删除的 server 不复活 */
     expect(result.mcpServers.gone).toBeUndefined()
+  })
+
+  it('preserves pi-side cwd / oauth / auth fields missing from the source', () => {
+    const converted = convertToPiFormat({
+      mcpServers: {
+        tools: { type: 'stdio', command: 'uvx', args: ['tools'] },
+        sentry: { type: 'http', url: 'https://mcp.sentry.dev/mcp' },
+      },
+    })
+    const result = preservePiServerSettings(converted, {
+      mcpServers: {
+        tools: { command: 'old', cwd: '/work/tools' },
+        sentry: {
+          url: 'https://mcp.sentry.dev/mcp',
+          oauth: { authServerMetadataUrl: 'https://example.okta.com/.well-known/openid-configuration' },
+          auth: { provider: 'github' },
+        },
+      },
+    })
+
+    expect(result.mcpServers.tools.cwd).toBe('/work/tools')
+    expect(result.mcpServers.sentry.oauth).toEqual({
+      authServerMetadataUrl: 'https://example.okta.com/.well-known/openid-configuration',
+    })
+    expect(result.mcpServers.sentry.auth).toEqual({ provider: 'github' })
   })
 
   it('目标文件不存在时原样返回；源里显式声明的字段优先', () => {
