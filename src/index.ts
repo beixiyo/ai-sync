@@ -264,7 +264,7 @@ async function main(): Promise<void> {
         }
         case 'skills': {
           const skillsPath = await getSkillsSourcePath(sourceDir)
-          migrator = new SkillsMigrator(skillsPath, supportedTools, options, toolsConfig)
+          migrator = new SkillsMigrator(skillsPath, supportedTools, { ...options, skills: mergedConfigs.global?.skills }, toolsConfig)
           break
         }
         case 'agents': {

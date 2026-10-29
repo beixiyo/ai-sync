@@ -9,15 +9,32 @@ import type { ToolConfig, ToolKey } from '../config'
 import type { MigrateOptions, MigrationStats } from './types'
 import { lstat, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
-import { copyDirectory, ensureDirectoryExists, fileExists, getMarkdownFiles, readFile, symlinkDirectory, unlinkSymlinksInto, writeFile } from '../utils/file'
+import {
+  copyDirectory,
+  ensureDirectoryExists,
+  fileExists,
+  getMarkdownFiles,
+  readFile,
+  symlinkDirectory,
+  unlinkExcludedEntries,
+  unlinkSymlinksInto,
+  writeFile,
+} from '../utils/file'
 import { BaseMigrator } from './base'
 
 /**
  * Skills 迁移器类
  */
 export class SkillsMigrator extends BaseMigrator {
+  private readonly excludeEntries: string[]
+
   constructor(sourceDir: string, targetTools: ToolKey[], options: MigrateOptions, tools: Record<ToolKey, ToolConfig>) {
     super(sourceDir, targetTools, options, 'skills', tools)
+
+    this.excludeEntries = [...new Set(options.skills?.excludeEntries ?? ['synced'])]
+    if (this.excludeEntries.some(name => !name || name === '.' || name === '..' || /[\\\\/]/.test(name))) {
+      throw new Error('skills.excludeEntries 仅支持顶级条目名称，不支持路径')
+    }
   }
 
   /**
@@ -26,6 +43,15 @@ export class SkillsMigrator extends BaseMigrator {
   protected async migrateForTool(tool: ToolKey, targetDir: string): Promise<MigrationStats> {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
     const skillConfig = this.tools[tool]?.skills
+
+    const cleanup = await unlinkExcludedEntries(this.sourceDir, targetDir, { excludeEntries: this.excludeEntries })
+    results.errors.push(...cleanup.errors)
+    results.error += cleanup.errors.length
+    for (const retained of cleanup.retained) {
+      this.logger.warn(`保留被排除的 Skills 条目（真实内容或无关链接），请检查后手动清理: ${retained}`)
+    }
+    if (cleanup.errors.length > 0)
+      return results
 
     /** 如果有自定义 transform 函数，软链接模式不适用，使用自定义转换逻辑 */
     if (skillConfig?.transform) {
@@ -44,7 +70,7 @@ export class SkillsMigrator extends BaseMigrator {
         return results
       }
 
-      const stats = await symlinkDirectory(this.sourceDir, targetDir)
+      const stats = await symlinkDirectory(this.sourceDir, targetDir, { excludeEntries: this.excludeEntries })
       this.sumStats(results, stats)
       return results
     }
@@ -53,7 +79,7 @@ export class SkillsMigrator extends BaseMigrator {
     if (!(await this.unlinkLegacySymlinksOrFail(targetDir, results))) {
       return results
     }
-    const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite)
+    const stats = await copyDirectory(this.sourceDir, targetDir, this.options.autoOverwrite, { excludeEntries: this.excludeEntries })
     this.sumStats(results, stats)
 
     return results
@@ -65,7 +91,7 @@ export class SkillsMigrator extends BaseMigrator {
    * 解除失败还继续写入会有沿链接改写真实源的风险，宁可失败也不冒险
    */
   private async unlinkLegacySymlinksOrFail(targetDir: string, results: MigrationStats): Promise<boolean> {
-    const unlinkResult = await unlinkSymlinksInto(targetDir, this.sourceDir)
+    const unlinkResult = await unlinkSymlinksInto(targetDir, this.sourceDir, { excludeEntries: this.excludeEntries })
 
     for (const unlinkError of unlinkResult.errors) {
       results.error++
@@ -91,6 +117,8 @@ export class SkillsMigrator extends BaseMigrator {
     const files = await getMarkdownFiles(this.sourceDir)
 
     for (const file of files) {
+      if (this.excludeEntries.includes(file))
+        continue
       const sourcePath = join(this.sourceDir, file)
       const targetPath = join(targetDir, file)
 

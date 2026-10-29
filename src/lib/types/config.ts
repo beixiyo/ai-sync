@@ -37,6 +37,18 @@ export interface CommandConfig {
 }
 
 /**
+ * Skills 源过滤策略，所有目标和迁移模式共用
+ */
+export interface SkillsSyncConfig {
+  /**
+   * 排除源目录中的顶级条目名称，精确匹配，不支持路径或 glob
+   * 显式传入 [] 可取消默认排除；配置数组替换默认列表
+   * @default ['synced']
+   */
+  excludeEntries?: string[]
+}
+
+/**
  * 技能配置
  */
 export interface SkillConfig {
@@ -195,6 +207,9 @@ export interface SyncConfig {
    * 全局配置
    */
   global?: {
+    /** Skills 源过滤策略 */
+    skills?: SkillsSyncConfig
+
     /**
      * 默认源目录
      */

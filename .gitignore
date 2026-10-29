@@ -13,3 +13,6 @@ dist
 *.test.ts.snap
 test-output*
 test-output-failure
+
+# ai
+.pi

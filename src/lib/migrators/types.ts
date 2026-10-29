@@ -1,3 +1,4 @@
+import type { SkillsSyncConfig } from '../config'
 import type { MigrationError } from '../utils/logger'
 
 /**
@@ -6,6 +7,8 @@ import type { MigrationError } from '../utils/logger'
 export interface MigrateOptions {
   autoOverwrite: boolean
   sourceDir?: string
+  /** Skills 源过滤策略；未配置时默认排除 synced */
+  skills?: SkillsSyncConfig
 }
 
 /**

@@ -109,6 +109,24 @@ export default defineConfig({
 })
 ```
 
+### Skills Source Filtering
+
+The top-level `synced` entry is excluded by default so Claude-generated content does not propagate to other tools. The same policy applies to all targets and symlink, copy, and transform modes.
+
+```js
+export default {
+  global: {
+    skills: {
+      excludeEntries: ['synced', 'private-skill'],
+    },
+  },
+}
+```
+
+Entries are exact top-level names, not paths or globs; nested entries inside a skill are unaffected. A custom array replaces the default list; use `excludeEntries: []` to disable filtering.
+
+Sync unlinks excluded target entries only when they clearly point to the corresponding source entry, leaving source data untouched. Existing real directories (including historical copies) and unrelated links are preserved with a warning for manual inspection and cleanup.
+
 ## Execution Rules
 
 ### Configuration Transformation Rules

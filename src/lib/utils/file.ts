@@ -12,6 +12,17 @@ import { parse as parseJSONC, stringify as stringifyJSONC } from 'comment-json'
 export { readFile, writeFile }
 
 /**
+ * 目录操作的顶级条目过滤选项
+ */
+export interface DirectoryFilterOptions {
+  /**
+   * 精确匹配的顶级条目名称，不支持路径或 glob
+   * @default []
+   */
+  excludeEntries?: readonly string[]
+}
+
+/**
  * 确保目录存在
  */
 export async function ensureDirectoryExists(dirPath: string): Promise<void> {
@@ -89,12 +100,13 @@ export async function copyFileSafe(
 }
 
 /**
- * 复制目录
+ * 复制目录，excludeEntries 仅精确排除顶级条目，不向递归层传递
  */
 export async function copyDirectory(
   sourceDir: string,
   targetDir: string,
   autoOverwrite: boolean = false,
+  { excludeEntries = [] }: DirectoryFilterOptions = {},
 ): Promise<CopyDirectoryResults> {
   const results: CopyDirectoryResults = { success: 0, skipped: 0, error: 0, errors: [] }
 
@@ -102,6 +114,8 @@ export async function copyDirectory(
     const entries = await readdir(sourceDir, { withFileTypes: true })
 
     for (const entry of entries) {
+      if (excludeEntries.includes(entry.name))
+        continue
       const sourcePath = join(sourceDir, entry.name)
       const targetPath = join(targetDir, entry.name)
 
@@ -172,6 +186,7 @@ export async function copyDirectory(
 export async function symlinkDirectory(
   sourceDir: string,
   targetDir: string,
+  { excludeEntries = [] }: DirectoryFilterOptions = {},
 ): Promise<CopyDirectoryResults> {
   const results: CopyDirectoryResults = { success: 0, skipped: 0, error: 0, errors: [] }
   const absoluteSourceDir = resolve(sourceDir)
@@ -183,7 +198,7 @@ export async function symlinkDirectory(
   catch (error) {
     /** 源目录不存在时仍清理目标中的遗留链接，不记为错误 */
     if (error instanceof Error && (error as any).code === 'ENOENT') {
-      await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results)
+      await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results, excludeEntries)
       return results
     }
     results.error++
@@ -258,6 +273,8 @@ export async function symlinkDirectory(
   }
 
   for (const entry of entries) {
+    if (excludeEntries.includes(entry.name))
+      continue
     const sourcePath = resolve(absoluteSourceDir, entry.name)
     const targetPath = join(targetDir, entry.name)
 
@@ -297,7 +314,7 @@ export async function symlinkDirectory(
     }
   }
 
-  await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results)
+  await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results, excludeEntries)
 
   return results
 }
@@ -380,6 +397,7 @@ async function cleanupStaleSymlinks(
   targetDir: string,
   absoluteSourceDir: string,
   results: CopyDirectoryResults,
+  excludeEntries: readonly string[] = [],
 ): Promise<void> {
   let targetEntries: Dirent[]
   try {
@@ -390,7 +408,7 @@ async function cleanupStaleSymlinks(
   }
 
   for (const entry of targetEntries) {
-    if (!entry.isSymbolicLink())
+    if (excludeEntries.includes(entry.name) || !entry.isSymbolicLink())
       continue
 
     const targetPath = join(targetDir, entry.name)
@@ -424,6 +442,73 @@ async function cleanupStaleSymlinks(
   }
 }
 
+/**
+ * 解除被排除条目中明确指向源同名条目的链接；保留并返回其他已有条目供调用方提示
+ *
+ * 仅检查链接目标的路径及父目录别名，不沿源条目链接追到外部真实数据
+ * 源和目标互为别名或存在包含关系时不清理，避免改动源
+ */
+export async function unlinkExcludedEntries(
+  sourceDir: string,
+  targetDir: string,
+  { excludeEntries = [] }: DirectoryFilterOptions = {},
+): Promise<UnlinkSymlinksResult & { retained: string[] }> {
+  const result: UnlinkSymlinksResult & { retained: string[] } = { unlinked: 0, errors: [], retained: [] }
+  const absoluteSourceDir = resolve(sourceDir)
+  const realSourceDir = await realpath(absoluteSourceDir).catch(() => absoluteSourceDir)
+  const realTargetDir = await realpath(targetDir).catch(() => null)
+
+  if (
+    !realTargetDir || realTargetDir === realSourceDir
+    || isInsideDirectory(realTargetDir, realSourceDir)
+    || isInsideDirectory(realSourceDir, realTargetDir)
+  ) {
+    return result
+  }
+
+  for (const name of excludeEntries) {
+    if (!name || name === '.' || name === '..' || /[\\/]/.test(name)) {
+      result.errors.push({ file: name, error: 'excludeEntries 仅支持顶级条目名称，不支持路径' })
+      continue
+    }
+    const targetPath = join(targetDir, name)
+    try {
+      const targetStat = await lstat(targetPath).catch((error) => {
+        if (error.code === 'ENOENT')
+          return null
+        throw error
+      })
+      if (!targetStat)
+        continue
+
+      if (targetStat.isSymbolicLink()) {
+        const linkedPath = resolve(targetDir, await readlink(targetPath))
+        const linkedParent = await realpath(dirname(linkedPath)).catch(() => null)
+        if (
+          linkedPath === join(absoluteSourceDir, name)
+          || (linkedParent === realSourceDir && basename(linkedPath) === name)
+        ) {
+          await rm(targetPath, { force: true })
+          result.unlinked++
+          continue
+        }
+      }
+
+      result.retained.push(targetPath)
+    }
+    catch (error) {
+      result.errors.push({
+        file: targetPath,
+        error: error instanceof Error
+          ? error.message
+          : String(error),
+      })
+    }
+  }
+
+  return result
+}
+
 function isInsideDirectory(path: string, dir: string): boolean {
   const rel = relative(dir, path)
   /** `..` / `..${sep}` 前缀才是越界，不能误伤 `..foo` 这类合法同名前缀条目 */
@@ -445,7 +530,11 @@ export interface UnlinkSymlinksResult {
   errors: MigrationError[]
 }
 
-export async function unlinkSymlinksInto(targetDir: string, sourceDir: string): Promise<UnlinkSymlinksResult> {
+export async function unlinkSymlinksInto(
+  targetDir: string,
+  sourceDir: string,
+  { excludeEntries = [] }: DirectoryFilterOptions = {},
+): Promise<UnlinkSymlinksResult> {
   const result: UnlinkSymlinksResult = { unlinked: 0, errors: [] }
 
   let entries: Dirent[]
@@ -462,7 +551,7 @@ export async function unlinkSymlinksInto(targetDir: string, sourceDir: string): 
   const realSourceDir = await realpath(absoluteSourceDir).catch(() => absoluteSourceDir)
 
   for (const entry of entries) {
-    if (!entry.isSymbolicLink())
+    if (excludeEntries.includes(entry.name) || !entry.isSymbolicLink())
       continue
 
     const targetPath = join(targetDir, entry.name)
@@ -507,7 +596,7 @@ export async function unlinkSymlinksInto(targetDir: string, sourceDir: string): 
 }
 
 /**
- * 获取 Markdown 文件列表
+ * 获取 Markdown 文件列表（仅顶级文件，不递归目录）
  */
 export async function getMarkdownFiles(dirPath: string): Promise<string[]> {
   const files: string[] = []

@@ -109,6 +109,24 @@ export default defineConfig({
 })
 ```
 
+### Skills 源过滤
+
+默认排除源 skills 目录的顶级 `synced` 条目，避免 Claude 自动生成的内容传播到其他工具。所有目标和软链接、复制、转换模式共用此策略
+
+```js
+export default {
+  global: {
+    skills: {
+      excludeEntries: ['synced', 'private-skill'],
+    },
+  },
+}
+```
+
+列表仅精确匹配顶级条目名称，不支持路径或 glob，不影响 skill 内部同名子目录。自定义数组替换默认列表；显式设置 `excludeEntries: []` 可取消排除
+
+同步会解除目标中明确指向源同名排除条目的软链接，不影响源数据。已有真实目录（包括历史复制内容）和无关链接会保留并提示手动检查清理，不会自动删除
+
 ## 执行规则
 
 ### 配置转换规则
