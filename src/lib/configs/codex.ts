@@ -1,6 +1,6 @@
-import type { ToolConfig } from '../types/config'
 import { convertToUniversalAgent } from '../converters/agent'
 import { convertToCodexFormat } from '../converters/mcp'
+import type { ToolConfig } from '../types/config'
 
 export const codexConfig: ToolConfig = {
   name: 'Codex',
@@ -10,7 +10,7 @@ export const codexConfig: ToolConfig = {
     target: '~/.codex/prompts',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.codex/skills',
   },
   instructions: {

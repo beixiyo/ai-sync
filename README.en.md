@@ -16,7 +16,7 @@
   <a href="./README.en.md">English</a>
 </div>
 
-Automated script to migrate Claude configurations to different AI IDE tools
+Sync Claude configuration and shared skills across AI tools.
 
 ## Supported Tools
 
@@ -34,15 +34,14 @@ Automated script to migrate Claude configurations to different AI IDE tools
 
 ### 1. Prepare Configuration
 
-**Follow Claude Code Configuration Specification** https://code.claude.com/docs/settings
+Follow the [Claude Code configuration format](https://code.claude.com/docs/settings) and prepare the files you want to sync:
 
-Create `~/.claude` directory with the following subdirectories:
-- `~/.claude/commands/` - Custom commands (Markdown format)
-- `~/.claude/skills/` - Skill modules (Markdown format)
-- `~/.claude/CLAUDE.md` - Instructions
-- `~/.claude.json` - MCP configuration file
+- `~/.claude/commands/` — Custom commands in Markdown
+- `~/.agents/skills/` — Shared skills
+- `~/.claude/CLAUDE.md` — Instructions
+- `~/.claude.json` — MCP configuration
 
-### 2. Quick Start
+### 2. Run the CLI
 
 ```bash
 npm i -g @jl-org/ai-sync
@@ -61,7 +60,6 @@ ai-sync --help
  ◯  Gemini CLI
  ◯  IFlow CLI
 
-? Configure to current project (otherwise global config)? (y/N) n
 ? Auto-overwrite existing files? (y/N) y
 
 Starting migration...
@@ -78,11 +76,11 @@ Errors: 0
 
 ## Custom Configuration
 
-You can deeply customize the sync behavior by creating an `ai-sync.config.js` file in the project root directory
+Create `ai-sync.config.js` in the project root.
 
 ### 1. Using `defineConfig`
 
-With `defineConfig`, you can define new tool configurations or modify existing tool sync logic:
+Use `defineConfig` to add a tool or override its sync settings:
 
 ```typescript
 import { defineConfig } from '@jl-org/ai-sync'
@@ -125,7 +123,7 @@ export default {
 
 Entries are exact top-level names, not paths or globs; nested entries inside a skill are unaffected. A custom array replaces the default list; use `excludeEntries: []` to disable filtering.
 
-Sync unlinks excluded target entries only when they clearly point to the corresponding source entry, leaving source data untouched. Existing real directories (including historical copies) and unrelated links are preserved with a warning for manual inspection and cleanup.
+In symlink mode, exclusions only prevent new links; existing entries are never removed. In explicit copy or transform mode, existing links to the corresponding excluded source entries are removed.
 
 ## Execution Rules
 
@@ -134,7 +132,7 @@ Sync unlinks excluded target entries only when they clearly point to the corresp
 | Configuration Type | Transformation Description |
 |-------------------|---------------------------|
 | **Commands** | Claude → Cursor/OpenCode/ZCode: Direct copy<br>Claude → Gemini/IFlow: Markdown → TOML automatic conversion<br>Claude → Pi: prompt templates (Claude-only frontmatter stripped) |
-| **Skills** | Symlink mode by default: entries in each tool's skills directory are symlinked to the `~/.claude/skills/` source, existing copies are replaced safely (create-then-replace, no data loss on failure) and stale links are cleaned up; switching back to `symlink: false` unlinks leftovers and produces real copies |
+| **Skills** | Add missing symlinks from selected tools to `~/.agents/skills/`. Correct links are left alone. Conflicting files, directories, and links (including broken links) are reported and never overwritten, even with `-y`. |
 | **Instructions** | `CLAUDE.md` → tool-specific instruction files: Gemini (`GEMINI.md`), Codex/OpenCode/Cursor/IFlow/ZCode (`AGENTS.md`), CodeBuddy (`CODEBUDDY.md`), Pi (`~/.pi/agent/AGENTS.md`) |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode: Automatic format conversion<br>Claude → Pi: native MCP (written to `~/.pi/agent/mcp.json`), same structure; adds `oauth.clientName` for Figma and keeps per-server `exposure`/`enabled` etc. already set in pi |
 | **Settings** | Claude → CodeBuddy: Direct copy<br>Claude → ZCode: Only compatible Hook events (wrapped into `hooks.events` structure) |
@@ -148,7 +146,7 @@ Sync unlinks excluded target entries only when they clearly point to the corresp
 
 ### Path Rules
 
-- **Tool Configuration**: Unified use of global Home directory configuration paths, such as `~/.cursor/`, `~/.claude/`
-- **Path Resolution**: Support using `~` to represent the user's home directory, automatically handles cross-platform paths
-- **Default Directory**: Default to using home directory `~` as the configuration detection starting point, with `~/.claude` as the sole configuration standard
-- **Specified Path**: Support specifying custom source and target project directories through command-line parameters or configuration files
+- **Tool configuration**: Targets use global paths such as `~/.claude/` by default.
+- **Path resolution**: `~` expands to your home directory.
+- **Source root**: Defaults to `~`. With `-s <dir>`, skills are read from `<dir>/.agents/skills`; other configuration types keep their Claude-based paths.
+- **Custom paths**: Set the source root with `-s` or override tool paths in the configuration file.

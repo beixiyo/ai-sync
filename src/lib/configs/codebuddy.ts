@@ -8,7 +8,7 @@ export const codebuddyConfig: ToolConfig = {
     target: '~/.codebuddy/commands',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.codebuddy/skills',
   },
   instructions: {

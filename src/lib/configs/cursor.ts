@@ -1,5 +1,5 @@
-import type { ToolConfig } from '../types/config'
 import { convertToUniversalAgent } from '../converters/agent'
+import type { ToolConfig } from '../types/config'
 
 export const cursorConfig: ToolConfig = {
   name: 'Cursor',
@@ -9,7 +9,7 @@ export const cursorConfig: ToolConfig = {
     target: '~/.cursor/commands',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.cursor/skills',
   },
   instructions: {

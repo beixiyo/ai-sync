@@ -38,7 +38,7 @@
 
 创建 `~/.claude` 目录，包含以下子目录：
 - `~/.claude/commands/` - 存放自定义命令（Markdown 格式）
-- `~/.claude/skills/` - 存放技能模块（Markdown 格式）
+- `~/.agents/skills/` - 共享技能模块（不在 `~/.claude/` 内）
 - `~/.claude/CLAUDE.md` - 存放基础指令
 - `~/.claude.json` - MCP 配置文件
 
@@ -125,7 +125,7 @@ export default {
 
 列表仅精确匹配顶级条目名称，不支持路径或 glob，不影响 skill 内部同名子目录。自定义数组替换默认列表；显式设置 `excludeEntries: []` 可取消排除
 
-同步会解除目标中明确指向源同名排除条目的软链接，不影响源数据。已有真实目录（包括历史复制内容）和无关链接会保留并提示手动检查清理，不会自动删除
+默认软链接模式下，排除项只影响新建链接，不会删除已有条目。显式使用复制或转换模式时，仍会解除指向源同名排除项的链接
 
 ## 执行规则
 
@@ -134,7 +134,7 @@ export default {
 | 配置类型 | 转换说明 |
 |---------|--------|
 | **Commands** | Claude → Cursor/OpenCode/ZCode：直接复制<br>Claude → Gemini/IFlow：Markdown → TOML 自动转换<br>Claude → Pi：prompt template（清洗 Claude 专属 frontmatter） |
-| **Skills** | 默认软链接模式：各工具 skills 目录中的条目以符号链接指向 `~/.claude/skills/` 源，已有复制内容被安全替换（先建后换，失败不丢旧内容），失效链接自动清理；切回 `symlink: false` 时自动解除遗留链接、产出真实副本 |
+| **Skills** | 默认从 `~/.agents/skills/` 向所选工具补建链接。正确链接直接跳过；同名文件、目录或其他链接（含断链）保留并提示，即使使用 `-y` 也不覆盖 |
 | **Instructions** | `CLAUDE.md` → 各工具指令文件：Gemini（`GEMINI.md`）、Codex/OpenCode/Cursor/IFlow/ZCode（`AGENTS.md`）、CodeBuddy（`CODEBUDDY.md`）、Pi（`~/.pi/agent/AGENTS.md`） |
 | **MCP** | Claude → Cursor/OpenCode/Gemini/IFlow/ZCode：自动格式转换<br>Claude → Pi：原生 MCP（写入 `~/.pi/agent/mcp.json`），结构一致，仅为 Figma 补 `oauth.clientName`，并保留 pi 中已设置的 `exposure`/`enabled` 等 |
 | **Settings** | Claude → CodeBuddy：直接复制<br>Claude → ZCode：仅迁移兼容的 Hooks 事件（`hooks.events` 结构自动包装） |
@@ -150,5 +150,5 @@ export default {
 
 - **工具配置**：统一使用全局 Home 目录下的配置路径，如 `~/.claude/`
 - **路径解析**：支持使用 `~` 表示用户主目录，自动处理跨平台路径
-- **默认目录**：默认使用家目录 `~` 作为配置探测起点，以 `~/.claude` 作为唯一配置标准
+- **源根目录**：默认是 `~`。使用 `-s <dir>` 时，Skills 从 `<dir>/.agents/skills` 读取，其他类型继续使用 Claude 的路径规则
 - **指定路径**：支持通过命令行参数或配置文件指定自定义的源目录和目标项目目录

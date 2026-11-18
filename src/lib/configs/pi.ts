@@ -1,7 +1,7 @@
-import type { ToolConfig } from '../types/config'
 import { convertToPiAgent } from '../converters/agent'
 import { convertToPiFormat, preservePiServerSettings } from '../converters/mcp'
 import { convertToPiPrompt } from '../converters/prompt'
+import type { ToolConfig } from '../types/config'
 
 /**
  * Pi (pi-mono) 配置
@@ -24,7 +24,7 @@ export const piConfig: ToolConfig = {
     transform: convertToPiPrompt,
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.agents/skills',
   },
   instructions: {

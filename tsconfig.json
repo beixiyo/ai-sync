@@ -21,7 +21,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
-    "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@lib/*": ["./src/lib/*"],
       "@utils/*": ["./src/lib/utils/*"]

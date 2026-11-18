@@ -1,6 +1,6 @@
-import type { ToolConfig } from '../types/config'
 import { convertToUniversalAgent } from '../converters/agent'
 import { convertToGeminiFormat } from '../converters/mcp'
+import type { ToolConfig } from '../types/config'
 
 export const geminiConfig: ToolConfig = {
   name: 'Gemini CLI',
@@ -11,7 +11,7 @@ export const geminiConfig: ToolConfig = {
     convert: true,
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.gemini/skills',
   },
   instructions: {

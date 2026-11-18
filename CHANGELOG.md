@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.0
+
+### Breaking Changes
+
+- Skills 默认源改为 `~/.agents/skills`；使用 `-s <dir>` 时从 `<dir>/.agents/skills` 读取。仅 Skills 变更，旧 Claude 技能需按需手动搬迁
+- 默认软链接模式只补建缺失链接，不覆盖或删除已有条目（包含断链），遇到冲突时提示并继续。已正确链接或直接读取共享目录的工具无需重复同步
+
 ## 1.3.1 - 2026-10-17
 
 ### Fixed

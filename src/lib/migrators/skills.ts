@@ -1,14 +1,12 @@
 /**
  * Skills 迁移器
  *
- * 默认使用软链接模式：各工具 skills 目录中的条目以符号链接指向 Claude 源，
- * 只有源保留真实文件；配置 `symlink: false` 时回退为复制模式
+ * 默认从共享源补建链接，不改动目标中的已有条目；显式配置可使用复制或转换模式
  */
 
-import type { ToolConfig, ToolKey } from '../config'
-import type { MigrateOptions, MigrationStats } from './types'
-import { lstat, rm } from 'node:fs/promises'
+import { lstat, realpath, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
+import type { ToolConfig, ToolKey } from '../config'
 import {
   copyDirectory,
   ensureDirectoryExists,
@@ -21,6 +19,7 @@ import {
   writeFile,
 } from '../utils/file'
 import { BaseMigrator } from './base'
+import type { MigrateOptions, MigrationStats } from './types'
 
 /**
  * Skills 迁移器类
@@ -32,7 +31,7 @@ export class SkillsMigrator extends BaseMigrator {
     super(sourceDir, targetTools, options, 'skills', tools)
 
     this.excludeEntries = [...new Set(options.skills?.excludeEntries ?? ['synced'])]
-    if (this.excludeEntries.some(name => !name || name === '.' || name === '..' || /[\\\\/]/.test(name))) {
+    if (this.excludeEntries.some((name) => !name || name === '.' || name === '..' || /[\\\\/]/.test(name))) {
       throw new Error('skills.excludeEntries 仅支持顶级条目名称，不支持路径')
     }
   }
@@ -44,34 +43,39 @@ export class SkillsMigrator extends BaseMigrator {
     const results: MigrationStats = { success: 0, skipped: 0, error: 0, errors: [] }
     const skillConfig = this.tools[tool]?.skills
 
+    /** Pi 等直接读源目录的工具无需同步，复制或转换也不能写回源 */
+    const realSource = await realpath(this.sourceDir).catch(() => resolve(this.sourceDir))
+    const realTarget = await realpath(targetDir).catch(() => resolve(targetDir))
+    if (realSource === realTarget) return results
+
+    if (!skillConfig?.transform && skillConfig?.symlink !== false) {
+      const stats = await symlinkDirectory(this.sourceDir, targetDir, {
+        excludeEntries: this.excludeEntries,
+        legacySourceDir: this.options.legacySkillsDir,
+        onSkip: (path, reason) => {
+          if (reason === 'conflict') this.logger.warn(`Skill conflict; existing entry kept: ${path}`)
+          else if (reason === 'reverse-source') {
+            this.logger.warn(`Skill source depends on a target or legacy directory; move it to the shared source first: ${path}`)
+          }
+          else this.logger.warn(`Invalid skill source; skipped: ${path}`)
+        },
+      })
+      this.sumStats(results, stats)
+      return results
+    }
+
     const cleanup = await unlinkExcludedEntries(this.sourceDir, targetDir, { excludeEntries: this.excludeEntries })
     results.errors.push(...cleanup.errors)
     results.error += cleanup.errors.length
     for (const retained of cleanup.retained) {
       this.logger.warn(`保留被排除的 Skills 条目（真实内容或无关链接），请检查后手动清理: ${retained}`)
     }
-    if (cleanup.errors.length > 0)
-      return results
+    if (cleanup.errors.length > 0) return results
 
-    /** 如果有自定义 transform 函数，软链接模式不适用，使用自定义转换逻辑 */
+    /** 自定义转换使用真实文件，不沿遗留链接写入 */
     if (skillConfig?.transform) {
-      /** 先解除软链接模式遗留的链接，避免转换写入沿链接改到源文件；解除失败则中止，防止写穿 */
-      if (!(await this.unlinkLegacySymlinksOrFail(targetDir, results))) {
-        return results
-      }
+      if (!(await this.unlinkLegacySymlinksOrFail(targetDir, results))) return results
       await this.migrateWithTransform(targetDir, results, tool)
-      return results
-    }
-
-    /** 软链接模式（默认）：目标条目直接链接到源，已有复制内容被替换为链接 */
-    if (skillConfig?.symlink !== false) {
-      /** 源与目标相同（如 claude 自身）时跳过，避免自引用 */
-      if (resolve(targetDir) === resolve(this.sourceDir)) {
-        return results
-      }
-
-      const stats = await symlinkDirectory(this.sourceDir, targetDir, { excludeEntries: this.excludeEntries })
-      this.sumStats(results, stats)
       return results
     }
 
@@ -111,14 +115,12 @@ export class SkillsMigrator extends BaseMigrator {
     tool: ToolKey,
   ): Promise<void> {
     const transform = this.tools[tool]?.skills?.transform
-    if (!transform)
-      return
+    if (!transform) return
 
     const files = await getMarkdownFiles(this.sourceDir)
 
     for (const file of files) {
-      if (this.excludeEntries.includes(file))
-        continue
+      if (this.excludeEntries.includes(file)) continue
       const sourcePath = join(this.sourceDir, file)
       const targetPath = join(targetDir, file)
 

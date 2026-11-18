@@ -1,6 +1,4 @@
 import type { ToolKey } from '@lib/config'
-import { lstat, readFile, readlink, symlink, writeFile } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
 import { TOOL_CONFIGS } from '@lib/config'
 import { mergeConfigs } from '@lib/customConfig'
 import { CommandsMigrator } from '@lib/migrators/commands'
@@ -9,6 +7,8 @@ import { SettingsMigrator } from '@lib/migrators/settings'
 import { SkillsMigrator } from '@lib/migrators/skills'
 import { copyDirectory, ensureDirectoryExists, fileExists, removeDirectory, writeJSONFile } from '@lib/utils/file'
 import { logger } from '@lib/utils/logger'
+import { lstat, readFile, readlink, symlink, writeFile } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /** 测试配置 */
@@ -98,10 +98,8 @@ describe('集成测试 (全面覆盖)', () => {
 
       for (const tool of allToolsWithCustom) {
         let skillsDir: string
-        if (tool === 'opencode')
-          skillsDir = join(testTargetDir, '.config', 'opencode', 'skills')
-        else if (tool === 'test-cli')
-          skillsDir = join(testTargetDir, '.test-cli', 'skills')
+        if (tool === 'opencode') skillsDir = join(testTargetDir, '.config', 'opencode', 'skills')
+        else if (tool === 'test-cli') skillsDir = join(testTargetDir, '.test-cli', 'skills')
         else skillsDir = join(testTargetDir, `.${tool}`, 'skills')
 
         /** 源与目标相同（claude 自身）：跳过，源保持真实文件 */
@@ -146,7 +144,7 @@ describe('集成测试 (全面覆盖)', () => {
       expect(await fileExists(join(sourceSkillsDir, 'synced', 'vendor-skill', 'SKILL.md'))).toBe(true)
     })
 
-    it.each(['symlink', 'copy', 'transform'] as const)('%s 模式只解除被排除的源同名链接，保留真实目录和无关链接', async (mode) => {
+    it.each(['symlink', 'copy', 'transform'] as const)('%s 模式排除指定条目，仅复制和转换模式清理现有同步链接', async (mode) => {
       const targetDir = join(testTargetDir, '.cursor', 'skills')
       await ensureDirectoryExists(targetDir)
       await ensureDirectoryExists(join(sourceSkillsDir, 'synced'))
@@ -180,13 +178,19 @@ describe('集成测试 (全面覆盖)', () => {
         }, tools).migrate()
 
         expect(result.error).toBe(0)
-        await expect(lstat(join(targetDir, 'synced'))).rejects.toMatchObject({ code: 'ENOENT' })
+        if (mode === 'symlink') {
+          expect((await lstat(join(targetDir, 'synced'))).isSymbolicLink()).toBe(true)
+          expect(warn).not.toHaveBeenCalled()
+        }
+        else {
+          await expect(lstat(join(targetDir, 'synced'))).rejects.toMatchObject({ code: 'ENOENT' })
+          expect(warn).toHaveBeenCalledWith(expect.stringContaining(join(targetDir, 'local')))
+          expect(warn).toHaveBeenCalledWith(expect.stringContaining(join(targetDir, 'unrelated')))
+        }
         expect(await readFile(join(sourceSkillsDir, 'synced', 'SKILL.md'), 'utf-8')).toBe('source data')
         expect(await readFile(join(targetDir, 'local', 'SKILL.md'), 'utf-8')).toBe('user data')
         expect(await readlink(join(targetDir, 'unrelated'))).toBe(join(sourceSkillsDir, 'demo-skill'))
         expect(await readlink(join(targetDir, 'broken'))).toBe(join(sourceSkillsDir, 'missing'))
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining(join(targetDir, 'local')))
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining(join(targetDir, 'unrelated')))
       }
       finally {
         warn.mockRestore()
@@ -228,7 +232,7 @@ describe('集成测试 (全面覆盖)', () => {
       }
     })
 
-    it('显式空列表取消排除，并能再次恢复默认排除清理已有链接', async () => {
+    it('显式空列表取消排除，恢复默认排除时不删除已有链接', async () => {
       await ensureDirectoryExists(join(sourceSkillsDir, 'synced'))
       await writeFile(join(sourceSkillsDir, 'synced', 'SKILL.md'), 'synced data')
       const config = mergeConfigs(
@@ -245,7 +249,7 @@ describe('集成测试 (全面覆盖)', () => {
       for (let i = 0; i < 2; i++) {
         const excluded = await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
         expect(excluded.error).toBe(0)
-        await expect(lstat(join(targetSkillsDir, 'synced'))).rejects.toMatchObject({ code: 'ENOENT' })
+        expect((await lstat(join(targetSkillsDir, 'synced'))).isSymbolicLink()).toBe(true)
       }
     })
 
@@ -260,21 +264,31 @@ describe('集成测试 (全面覆盖)', () => {
       expect(await fileExists(join(sourceSkillsDir, 'synced', 'SKILL.md'))).toBe(true)
     })
 
-    it('应该把已复制的真实文件/目录替换为软链接', async () => {
-      /** 预置旧的复制产物（真实文件与目录，模拟升级前同步过的场景） */
+    it('保留同名文件、目录、其他链接和断链，继续同步无冲突条目', async () => {
       await ensureDirectoryExists(join(targetSkillsDir, 'demo-skill'))
-      const { writeFile } = await import('node:fs/promises')
       await writeFile(join(targetSkillsDir, 'test-skill.md'), 'old copy')
-      await writeFile(join(targetSkillsDir, 'demo-skill', 'SKILL.md'), 'old copy')
+      await writeFile(join(targetSkillsDir, 'demo-skill', 'SKILL.md'), 'old directory')
+      for (const name of ['fresh.md', 'other.md', 'broken.md']) await writeFile(join(sourceSkillsDir, name), name)
+      await symlink(join(targetSkillsDir, 'test-skill.md'), join(targetSkillsDir, 'other.md'), 'file')
+      await symlink(join(targetSkillsDir, 'missing.md'), join(targetSkillsDir, 'broken.md'), 'file')
 
-      const migrator = new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: false }, TOOL_CONFIGS)
-      const result = await migrator.migrate()
+      const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+      try {
+        const result = await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
 
-      expect(result.error).toBe(0)
-      expect((await lstat(join(targetSkillsDir, 'test-skill.md'))).isSymbolicLink()).toBe(true)
-      expect((await lstat(join(targetSkillsDir, 'demo-skill'))).isSymbolicLink()).toBe(true)
-      /** 链接内容跟随源，旧复制内容被替换 */
-      expect(await readFile(join(targetSkillsDir, 'test-skill.md'), 'utf-8')).toContain('测试技能')
+        expect(result).toMatchObject({ success: 1, skipped: 4, error: 0 })
+        expect(await readFile(join(targetSkillsDir, 'test-skill.md'), 'utf-8')).toBe('old copy')
+        expect(await readFile(join(targetSkillsDir, 'demo-skill', 'SKILL.md'), 'utf-8')).toBe('old directory')
+        expect(await readlink(join(targetSkillsDir, 'other.md'))).toBe(join(targetSkillsDir, 'test-skill.md'))
+        expect(await readlink(join(targetSkillsDir, 'broken.md'))).toBe(join(targetSkillsDir, 'missing.md'))
+        expect(await readlink(join(targetSkillsDir, 'fresh.md'))).toBe(join(sourceSkillsDir, 'fresh.md'))
+        for (const name of ['test-skill.md', 'demo-skill', 'other.md', 'broken.md']) {
+          expect(warn).toHaveBeenCalledWith(expect.stringContaining(join(targetSkillsDir, name)))
+        }
+      }
+      finally {
+        warn.mockRestore()
+      }
     })
 
     it('幂等：已是正确链接时跳过，重复运行不重复计数', async () => {
@@ -288,7 +302,7 @@ describe('集成测试 (全面覆盖)', () => {
       expect(second.error).toBe(0)
     })
 
-    it('应该清理指向已删除源的失效链接（含 .. 前缀条目），保留与源无关的条目', async () => {
+    it('保留指向已删除源的断链和目标原生条目', async () => {
       /** 先完成一次同步，得到有效链接 */
       await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
 
@@ -306,15 +320,15 @@ describe('集成测试 (全面覆盖)', () => {
       const result = await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
       expect(result.error).toBe(0)
 
-      await expect(lstat(join(targetSkillsDir, 'removed-skill'))).rejects.toMatchObject({ code: 'ENOENT' })
-      await expect(lstat(join(targetSkillsDir, '..demo'))).rejects.toMatchObject({ code: 'ENOENT' })
+      expect((await lstat(join(targetSkillsDir, 'removed-skill'))).isSymbolicLink()).toBe(true)
+      expect((await lstat(join(targetSkillsDir, '..demo'))).isSymbolicLink()).toBe(true)
       expect(await fileExists(join(targetSkillsDir, 'native-skill.md'))).toBe(true)
       expect(await readFile(join(targetSkillsDir, 'native-skill.md'), 'utf-8')).toBe('tool native content')
       /** 有效链接保持不变 */
       expect((await lstat(join(targetSkillsDir, 'demo-skill'))).isSymbolicLink()).toBe(true)
     })
 
-    it('源目录被整体删除后，仍应清理目标中的遗留链接', async () => {
+    it('源目录不存在时不清理目标中的遗留链接', async () => {
       await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
 
       const { rm } = await import('node:fs/promises')
@@ -323,8 +337,8 @@ describe('集成测试 (全面覆盖)', () => {
       const result = await new SkillsMigrator(sourceSkillsDir, ['cursor'], { autoOverwrite: true }, TOOL_CONFIGS).migrate()
       expect(result.error).toBe(0)
 
-      await expect(lstat(join(targetSkillsDir, 'test-skill.md'))).rejects.toMatchObject({ code: 'ENOENT' })
-      await expect(lstat(join(targetSkillsDir, 'demo-skill'))).rejects.toMatchObject({ code: 'ENOENT' })
+      expect((await lstat(join(targetSkillsDir, 'test-skill.md'))).isSymbolicLink()).toBe(true)
+      expect((await lstat(join(targetSkillsDir, 'demo-skill'))).isSymbolicLink()).toBe(true)
     })
 
     it('目标 skills 目录本身就是指向源的软链接（别名）时，应跳过并保留源', async () => {

@@ -14,10 +14,9 @@ describe('path source utils', () => {
   })
 
   describe('getSkillsSourcePath', () => {
-    it('should always return .claude/skills', async () => {
-      const claudePath = resolve(sourceDir, '.claude/skills')
+    it('从指定源根目录下的 .agents/skills 读取', async () => {
       const result = await getSkillsSourcePath(sourceDir)
-      expect(result).toBe(claudePath)
+      expect(result).toBe(resolve(sourceDir, '.agents/skills'))
     })
   })
 

@@ -2,10 +2,10 @@
  * 路径工具函数
  */
 
-import type { ConfigType, ToolKey } from './config'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
+import type { ConfigType, ToolKey } from './config'
 import { DEFAULT_TOOL_CONFIGS } from './configs'
 import { fileExists } from './utils/file'
 
@@ -33,9 +33,11 @@ export function getToolPath(
 
   if (!typeConfig?.target) {
     /** 只有在完全没有配置时才使用极简默认值 (仅作为系统鲁棒性保底) */
-    return expandHome(`~/.${tool}/${configType === 'mcp'
-      ? 'mcp.json'
-      : configType}`)
+    return expandHome(`~/.${tool}/${
+      configType === 'mcp'
+        ? 'mcp.json'
+        : configType
+    }`)
   }
 
   const target = typeConfig.target
@@ -115,10 +117,8 @@ export async function getOpenCodeMCPPath(basePath: string): Promise<string> {
   const jsonCPath = join(basePath, 'opencode.jsonc')
   const jsonPath = join(basePath, 'opencode.json')
 
-  if (await fileExists(jsonCPath))
-    return jsonCPath
-  if (await fileExists(jsonPath))
-    return jsonPath
+  if (await fileExists(jsonCPath)) return jsonCPath
+  if (await fileExists(jsonPath)) return jsonPath
 
   return jsonCPath // 默认返回 jsonc
 }
@@ -128,7 +128,7 @@ export async function getCommandsSourcePath(sourceDir: string): Promise<string> 
 }
 
 export async function getSkillsSourcePath(sourceDir: string): Promise<string> {
-  return resolve(sourceDir, '.claude/skills')
+  return resolve(sourceDir, '.agents/skills')
 }
 
 export async function getAgentsSourcePath(sourceDir: string): Promise<string> {
@@ -137,16 +137,13 @@ export async function getAgentsSourcePath(sourceDir: string): Promise<string> {
 
 export async function getInstructionsSourcePath(sourceDir: string): Promise<string> {
   const claudeMdPath = resolve(sourceDir, '.claude/CLAUDE.md')
-  if (await fileExists(claudeMdPath))
-    return claudeMdPath
+  if (await fileExists(claudeMdPath)) return claudeMdPath
 
   const agentsMdPath = resolve(sourceDir, '.claude/AGENTS.md')
-  if (await fileExists(agentsMdPath))
-    return agentsMdPath
+  if (await fileExists(agentsMdPath)) return agentsMdPath
 
   const rootMdPath = resolve(sourceDir, 'CLAUDE.md')
-  if (await fileExists(rootMdPath))
-    return rootMdPath
+  if (await fileExists(rootMdPath)) return rootMdPath
 
   return claudeMdPath
 }

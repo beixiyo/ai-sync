@@ -1,6 +1,6 @@
-import type { ToolConfig } from '../types/config'
 import { convertToZCodeFormat } from '../converters/mcp'
 import { convertToZCodeSettingsFormat } from '../converters/settings'
+import type { ToolConfig } from '../types/config'
 
 /**
  * ZCode（智谱 Z.ai Agentic 开发环境）配置
@@ -18,7 +18,7 @@ export const zcodeConfig: ToolConfig = {
     target: '~/.zcode/commands',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.zcode/skills',
   },
   instructions: {

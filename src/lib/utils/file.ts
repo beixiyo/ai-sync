@@ -2,12 +2,12 @@
  * 文件工具函数
  */
 
-import type { Dirent } from 'node:fs'
-import type { MigrationError } from './logger'
-import { access, chmod, constants, copyFile, lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises'
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import TOML from '@iarna/toml'
 import { parse as parseJSONC, stringify as stringifyJSONC } from 'comment-json'
+import type { Dirent } from 'node:fs'
+import { access, chmod, constants, copyFile, lstat, mkdir, readdir, readFile, readlink, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
+import type { MigrationError } from './logger'
 
 export { readFile, writeFile }
 
@@ -20,6 +20,17 @@ export interface DirectoryFilterOptions {
    * @default []
    */
   excludeEntries?: readonly string[]
+}
+
+/** 仅新增链接的目录同步选项 */
+interface SymlinkDirectoryOptions extends DirectoryFilterOptions {
+  /**
+   * 报告需要人工检查的跳过项，不包含已同步的正确链接
+   * @default undefined
+   */
+  onSkip?: (path: string, reason: 'conflict' | 'reverse-source' | 'invalid-source') => void
+  /** 旧版源目录；仅用于识别仍依赖旧布局的源条目 */
+  legacySourceDir?: string
 }
 
 /**
@@ -114,8 +125,7 @@ export async function copyDirectory(
     const entries = await readdir(sourceDir, { withFileTypes: true })
 
     for (const entry of entries) {
-      if (excludeEntries.includes(entry.name))
-        continue
+      if (excludeEntries.includes(entry.name)) continue
       const sourcePath = join(sourceDir, entry.name)
       const targetPath = join(targetDir, entry.name)
 
@@ -170,23 +180,13 @@ export async function copyDirectory(
 }
 
 /**
- * 以软链接方式同步目录（Skills 软链接模式）
- *
- * 将 `sourceDir` 下每个顶级条目在 `targetDir` 中创建为指向源的符号链接：
- * - 目标已是正确指向源的链接 → 跳过（幂等）
- * - 目标存在同名复制文件/目录或指向他处的链接 → 安全替换（先建临时链接，成功后才替换旧内容）
- * - 目标中存在指向源目录内、但源已删除的失效链接 → 自动清理（源目录整体不存在时同样清理）
- * - 目标中与源无关的真实条目 → 保留不动
- * - 目标与源指向同一物理目录（互为别名）或存在包含关系 → 整体跳过，避免误删真实源
- * - 交叉布局（源条目本身是指向目标目录内部的链接，如 skills CLI 的安装布局）→ 跳过该条目，
- *   目标处的同名内容就是唯一真实数据，绝不能当作旧副本替换或删除
- *
- * 链接统一使用绝对路径；Windows 上目录使用 junction（无需管理员权限）
+ * 仅在目标同名路径空闲时创建软链接，不替换或清理任何已有条目
+ * 链接使用绝对路径；Windows 上目录使用 junction（无需管理员权限）
  */
 export async function symlinkDirectory(
   sourceDir: string,
   targetDir: string,
-  { excludeEntries = [] }: DirectoryFilterOptions = {},
+  { excludeEntries = [], onSkip, legacySourceDir }: SymlinkDirectoryOptions = {},
 ): Promise<CopyDirectoryResults> {
   const results: CopyDirectoryResults = { success: 0, skipped: 0, error: 0, errors: [] }
   const absoluteSourceDir = resolve(sourceDir)
@@ -196,11 +196,7 @@ export async function symlinkDirectory(
     entries = await readdir(absoluteSourceDir, { withFileTypes: true })
   }
   catch (error) {
-    /** 源目录不存在时仍清理目标中的遗留链接，不记为错误 */
-    if (error instanceof Error && (error as any).code === 'ENOENT') {
-      await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results, excludeEntries)
-      return results
-    }
+    if (isFileError(error, 'ENOENT')) return results
     results.error++
     results.errors.push({
       file: sourceDir,
@@ -272,34 +268,72 @@ export async function symlinkDirectory(
     return results
   }
 
+  const realLegacyDir = legacySourceDir && await realpath(legacySourceDir).catch(() => null)
   for (const entry of entries) {
-    if (excludeEntries.includes(entry.name))
-      continue
+    if (excludeEntries.includes(entry.name)) continue
     const sourcePath = resolve(absoluteSourceDir, entry.name)
     const targetPath = join(targetDir, entry.name)
 
     try {
-      /**
-       * 交叉布局防护（如 skills CLI：真实文件在目标目录，源条目是指向它的链接）：
-       * 源条目的真实位置落在目标目录内时，目标处的同名内容就是唯一真实数据，
-       * 跳过以避免形成循环链接、或把真实文件当作旧副本删除；
-       * 源条目是断链（realpath 失败）时同样跳过，不做无意义甚至危险的替换
-       */
-      const realSourceEntry = await realpath(sourcePath).catch(() => null)
+      const realSourceEntry = await realpath(sourcePath).catch((error: unknown) => {
+        if (isFileError(error, 'ENOENT') || isFileError(error, 'ELOOP')) return null
+        throw error
+      })
       if (
         !realSourceEntry
         || realSourceEntry === resolvedTargetDir
         || isInsideDirectory(realSourceEntry, resolvedTargetDir)
+        || (realLegacyDir && realLegacyDir !== realSourceDir && isInsideDirectory(realSourceEntry, realLegacyDir))
       ) {
+        onSkip?.(
+          sourcePath,
+          realSourceEntry
+            ? 'reverse-source'
+            : 'invalid-source',
+        )
         results.skipped++
         continue
       }
 
-      const created = await replaceWithSymlink(sourcePath, targetPath, entry.isDirectory())
-      if (created) {
+      const sourceStat = await stat(realSourceEntry)
+      if (!sourceStat.isFile() && !sourceStat.isDirectory()) {
+        onSkip?.(sourcePath, 'invalid-source')
+        results.skipped++
+        continue
+      }
+
+      const existing = await lstat(targetPath).catch((error: unknown) => {
+        if (isFileError(error, 'ENOENT')) return null
+        throw error
+      })
+      if (existing) {
+        /** 同名断链也占用了路径；只有仍可解析且指向同一源条目的链接才算已同步 */
+        const linkedPath = existing.isSymbolicLink()
+          ? resolve(resolvedTargetDir, await readlink(targetPath))
+          : null
+        const linkedParent = linkedPath && await realpath(dirname(linkedPath)).catch(() => null)
+        const isAlreadySynced = linkedPath && linkedParent === realSourceDir
+          && basename(linkedPath) === entry.name
+          && await realpath(targetPath).catch(() => null) === realSourceEntry
+        if (!isAlreadySynced) onSkip?.(targetPath, 'conflict')
+        results.skipped++
+        continue
+      }
+
+      try {
+        await symlink(
+          sourcePath,
+          targetPath,
+          sourceStat.isDirectory()
+            ? 'junction'
+            : 'file',
+        )
         results.success++
       }
-      else {
+      catch (error) {
+        /** 如果检查后路径被别的进程占用，symlink 本身也不会覆盖它 */
+        if (!isFileError(error, 'EEXIST')) throw error
+        onSkip?.(targetPath, 'conflict')
         results.skipped++
       }
     }
@@ -313,133 +347,12 @@ export async function symlinkDirectory(
       })
     }
   }
-
-  await cleanupStaleSymlinks(targetDir, absoluteSourceDir, results, excludeEntries)
 
   return results
 }
 
-/**
- * 确保目标路径是指向 `sourcePath` 的符号链接
- *
- * 先在临时路径创建链接，创建成功后才替换旧内容（改名旧内容 → 新链接就位 → 删除旧内容），
- * 避免先删后建在链接创建失败（如 Windows 无符号链接权限）时造成旧内容永久丢失
- * 临时/备份路径带唯一后缀，不触碰无关的同名原生条目，也不受历史残留影响
- *
- * 返回 `false` 表示目标已是正确的链接（未改动）
- */
-async function replaceWithSymlink(
-  sourcePath: string,
-  targetPath: string,
-  isDirectory: boolean,
-): Promise<boolean> {
-  const targetStat = await lstat(targetPath).catch(() => null)
-
-  if (targetStat?.isSymbolicLink()) {
-    const existing = await readlink(targetPath)
-    if (resolve(dirname(targetPath), existing) === sourcePath) {
-      return false
-    }
-  }
-
-  const uniqueSuffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-  const tmpLinkPath = `${targetPath}.ai-sync-tmp-${uniqueSuffix}`
-  const backupPath = `${targetPath}.ai-sync-bak-${uniqueSuffix}`
-
-  /** POSIX 上 type 参数被忽略；Windows 上目录使用 junction 无需管理员权限 */
-  await symlink(
-    sourcePath,
-    tmpLinkPath,
-    isDirectory
-      ? 'junction'
-      : 'file',
-  )
-
-  try {
-    if (targetStat) {
-      await rename(targetPath, backupPath)
-    }
-    await rename(tmpLinkPath, targetPath)
-  }
-  catch (error) {
-    /** 回滚：清理临时链接的失败不得阻断旧内容恢复 */
-    await rm(tmpLinkPath, { recursive: true, force: true }).catch(() => {})
-
-    let backupKept = false
-    if (targetStat && !(await fileExists(targetPath))) {
-      /** 恢复失败时保留备份，并在错误信息中说明位置，不能静默吞掉 */
-      backupKept = !(await rename(backupPath, targetPath).then(
-        () => true,
-        () => false,
-      ))
-    }
-
-    const reason = error instanceof Error
-      ? error.message
-      : 'Unknown error'
-    throw new Error(
-      backupKept
-        ? `${reason}（旧内容已保留备份: ${backupPath}）`
-        : reason,
-    )
-  }
-
-  await rm(backupPath, { recursive: true, force: true })
-  return true
-}
-
-/**
- * 清理目标目录中指向源目录内部、但源已不存在的失效链接
- *
- * 仅处理失效符号链接，不动与源无关的真实文件/目录
- */
-async function cleanupStaleSymlinks(
-  targetDir: string,
-  absoluteSourceDir: string,
-  results: CopyDirectoryResults,
-  excludeEntries: readonly string[] = [],
-): Promise<void> {
-  let targetEntries: Dirent[]
-  try {
-    targetEntries = await readdir(targetDir, { withFileTypes: true })
-  }
-  catch {
-    return
-  }
-
-  for (const entry of targetEntries) {
-    if (excludeEntries.includes(entry.name) || !entry.isSymbolicLink())
-      continue
-
-    const targetPath = join(targetDir, entry.name)
-    try {
-      const resolved = resolve(targetDir, await readlink(targetPath))
-      if (!isInsideDirectory(resolved, absoluteSourceDir))
-        continue
-
-      try {
-        /** 源条目仍存在，链接有效 */
-        await stat(resolved)
-        continue
-      }
-      catch (error) {
-        /** 仅明确的 ENOENT 视为源已删除；权限等异常保守保留链接 */
-        if (error instanceof Error && (error as any).code !== 'ENOENT')
-          continue
-      }
-
-      await rm(targetPath, { force: true })
-    }
-    catch (error) {
-      results.error++
-      results.errors.push({
-        file: entry.name,
-        error: error instanceof Error
-          ? error.message
-          : 'Unknown error',
-      })
-    }
-  }
+function isFileError(error: unknown, code: string): boolean {
+  return error instanceof Error && 'code' in error && error.code === code
 }
 
 /**
@@ -474,12 +387,10 @@ export async function unlinkExcludedEntries(
     const targetPath = join(targetDir, name)
     try {
       const targetStat = await lstat(targetPath).catch((error) => {
-        if (error.code === 'ENOENT')
-          return null
+        if (error.code === 'ENOENT') return null
         throw error
       })
-      if (!targetStat)
-        continue
+      if (!targetStat) continue
 
       if (targetStat.isSymbolicLink()) {
         const linkedPath = resolve(targetDir, await readlink(targetPath))
@@ -551,8 +462,7 @@ export async function unlinkSymlinksInto(
   const realSourceDir = await realpath(absoluteSourceDir).catch(() => absoluteSourceDir)
 
   for (const entry of entries) {
-    if (excludeEntries.includes(entry.name) || !entry.isSymbolicLink())
-      continue
+    if (excludeEntries.includes(entry.name) || !entry.isSymbolicLink()) continue
 
     const targetPath = join(targetDir, entry.name)
     try {
@@ -562,8 +472,7 @@ export async function unlinkSymlinksInto(
        * 避免切回复制模式后目标内容静默消失
        */
       const sourceEntryStat = await lstat(join(realSourceDir, entry.name)).catch(() => null)
-      if (sourceEntryStat?.isSymbolicLink())
-        continue
+      if (sourceEntryStat?.isSymbolicLink()) continue
 
       /** 词法路径与物理路径双重比较，覆盖链接目标经别名指向源的情形 */
       const resolved = resolve(targetDir, await readlink(targetPath))
@@ -690,9 +599,9 @@ function mergeTOMLPreservingComments(original: string, data: any): string | unde
   }
 
   /** 发生变化或新增的顶层键 */
-  const changedKeys = Object.keys(data).filter(key => !isDeepEqual(data[key], old[key]))
+  const changedKeys = Object.keys(data).filter((key) => !isDeepEqual(data[key], old[key]))
   /** 原文中已被删除的顶层键 */
-  const removedKeys = Object.keys(old).filter(key => !(key in data))
+  const removedKeys = Object.keys(old).filter((key) => !(key in data))
   const dirtyKeys = [...new Set([...changedKeys, ...removedKeys])]
 
   if (dirtyKeys.length === 0) {
@@ -706,10 +615,9 @@ function mergeTOMLPreservingComments(original: string, data: any): string | unde
    * 这类键在 TOML 中以 `[key]` / `[key.sub]` section 形式存在，可安全按行剥离
    * 若涉及根级标量/数组的增删改，按行剥离不可靠，直接回退
    */
-  const allChangedKeysAreTables = changedKeys.every(key => isPlainObject(data[key]))
-  const allRemovedKeysAreTables = removedKeys.every(key => isPlainObject(old[key]))
-  if (!allChangedKeysAreTables || !allRemovedKeysAreTables)
-    return undefined
+  const allChangedKeysAreTables = changedKeys.every((key) => isPlainObject(data[key]))
+  const allRemovedKeysAreTables = removedKeys.every((key) => isPlainObject(old[key]))
+  if (!allChangedKeysAreTables || !allRemovedKeysAreTables) return undefined
 
   /** 从原文剥离这些顶层表的所有 section，保留其余文本（含注释） */
   const head = stripTopLevelTables(original, dirtyKeys)
@@ -740,8 +648,7 @@ function stripTopLevelTables(text: string, tableNames: string[]): string {
       const firstSegment = header[1].split('.')[0].trim().replace(/^["']|["']$/g, '')
       skipping = targets.has(firstSegment)
     }
-    if (!skipping)
-      out.push(line)
+    if (!skipping) out.push(line)
   }
 
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()
@@ -752,12 +659,9 @@ function isPlainObject(value: unknown): value is Record<string, any> {
 }
 
 function isDeepEqual(a: unknown, b: unknown): boolean {
-  if (a === b)
-    return true
-  if (typeof a !== typeof b)
-    return false
-  if (typeof a !== 'object' || a === null || b === null)
-    return false
+  if (a === b) return true
+  if (typeof a !== typeof b) return false
+  if (typeof a !== 'object' || a === null || b === null) return false
   return JSON.stringify(a) === JSON.stringify(b)
 }
 

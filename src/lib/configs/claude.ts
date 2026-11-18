@@ -8,7 +8,7 @@ export const claudeConfig: ToolConfig = {
     target: '~/.claude/commands',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.claude/skills',
   },
   mcp: {

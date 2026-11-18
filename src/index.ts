@@ -5,16 +5,15 @@
  * 支持将 Claude/Cursor 的配置迁移到其他 AI 工具
  */
 
-import type { ConfigType, ToolConfig, ToolKey } from './lib/config'
-import type { BaseMigrator } from './lib/migrators/base'
-import type { MigrationResults } from './lib/utils/logger'
-import { resolve } from 'node:path'
-import { parseArgs } from 'node:util'
 import chalk from 'chalk'
 import inquirer from 'inquirer'
+import { resolve } from 'node:path'
+import { parseArgs } from 'node:util'
+import type { ConfigType, ToolConfig, ToolKey } from './lib/config'
 import { getToolChoiceList, INTERNAL_CONFIG, isConfigTypeSupported } from './lib/config'
 import { loadUserConfig, mergeConfigs } from './lib/customConfig'
 import { AgentsMigrator } from './lib/migrators/agents'
+import type { BaseMigrator } from './lib/migrators/base'
 import { CommandsMigrator } from './lib/migrators/commands'
 import { InstructionsMigrator } from './lib/migrators/instructions'
 import { MCPMigrator } from './lib/migrators/mcp'
@@ -30,6 +29,7 @@ import {
   getSkillsSourcePath,
   resolveSourceDir,
 } from './lib/path'
+import type { MigrationResults } from './lib/utils/logger'
 import { Logger } from './lib/utils/logger'
 
 /**
@@ -39,11 +39,11 @@ function printHelp(): void {
   console.log(chalk.cyan('AI Config 迁移脚本 (AI Config Migration)\n'))
   console.log('用法 (Usage): pnpm migrate [options]\n')
   console.log('选项 (Options):')
-  console.log('  -s, --source <dir>     源目录 (Source directory)（默认：~）')
+  console.log('  -s, --source <dir>     源根目录 (Source root)（默认：~；Skills 读取 <dir>/.agents/skills）')
   console.log('  -t, --target <tools>   目标工具 (Target tools)，逗号分隔（如：cursor,claude,opencode）')
   console.log('  --type <types>         配置类型 (Config types)，逗号分隔（如：commands,skills,mcp,settings）')
   console.log('  -c, --config <path>    指定配置文件 (Specify config file)')
-  console.log('  -y, --yes              自动覆盖 (Auto overwrite)（Skills 软链接模式不受此影响）')
+  console.log('  -y, --yes              自动覆盖 (Auto overwrite)（Skills 软链接模式从不覆盖）')
   console.log('  -h, --help             显示帮助信息 (Show help)')
   console.log('  --interactive          强制交互模式 (Force interactive mode)（默认）\n')
   console.log('支持的工具 (Supported tools):')
@@ -86,7 +86,7 @@ async function interactiveMode(tools: Record<ToolKey, ToolConfig> = INTERNAL_CON
       name: 'tools',
       message: '请选择要迁移的目标工具 (默认全选，可取消勾选不需要的工具) [Select target tools (uncheck to skip)]:',
       choices: toolChoices,
-      default: toolChoices.map(c => c.value),
+      default: toolChoices.map((c) => c.value),
     },
   ])
 
@@ -166,12 +166,12 @@ async function parseCommandLineArgs(): Promise<ParsedCommandLine> {
   let tools: ToolKey[] = []
   if (values.target) {
     /** 处理空格或逗号分隔的工具列表 */
-    tools = (values.target as string).split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ToolKey[]
+    tools = (values.target as string).split(/[\s,]+/).filter((t) => t).map((t) => t.trim().toLowerCase()) as ToolKey[]
   }
 
   let configTypes: ConfigType[] | undefined
   if (values.type) {
-    configTypes = (values.type as string).split(/[\s,]+/).filter(t => t).map(t => t.trim().toLowerCase()) as ConfigType[]
+    configTypes = (values.type as string).split(/[\s,]+/).filter((t) => t).map((t) => t.trim().toLowerCase()) as ConfigType[]
   }
 
   const autoOverwrite = values.yes || false
@@ -226,7 +226,7 @@ async function main(): Promise<void> {
 
   logger.section('开始迁移 (Start Migration)')
   console.log(chalk.cyan(`源目录 (Source directory): ${sourceDir}`))
-  console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map(t => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
+  console.log(chalk.cyan(`目标工具 (Target tools): ${options.tools.map((t) => mergedConfigs.tools?.[t]?.name || t).join(', ')}`))
   console.log(chalk.cyan(`自动覆盖 (Auto overwrite): ${
     options.autoOverwrite
       ? '是 (Yes)'
@@ -239,13 +239,13 @@ async function main(): Promise<void> {
     skipped: 0,
     error: 0,
     errors: [],
-    tools: options.tools.map(t => mergedConfigs.tools?.[t]?.name || t),
+    tools: options.tools.map((t) => mergedConfigs.tools?.[t]?.name || t),
   }
 
   const configTypes: ConfigType[] = options.configTypes || ['commands', 'skills', 'agents', 'instructions', 'mcp', 'settings']
 
   for (const configType of configTypes) {
-    const supportedTools = options.tools.filter(supportedTool => isConfigTypeSupported(supportedTool, configType, toolsConfig))
+    const supportedTools = options.tools.filter((supportedTool) => isConfigTypeSupported(supportedTool, configType, toolsConfig))
 
     if (supportedTools.length === 0) {
       continue
@@ -264,7 +264,11 @@ async function main(): Promise<void> {
         }
         case 'skills': {
           const skillsPath = await getSkillsSourcePath(sourceDir)
-          migrator = new SkillsMigrator(skillsPath, supportedTools, { ...options, skills: mergedConfigs.global?.skills }, toolsConfig)
+          migrator = new SkillsMigrator(skillsPath, supportedTools, {
+            ...options,
+            skills: mergedConfigs.global?.skills,
+            legacySkillsDir: resolve(sourceDir, '.claude/skills'),
+          }, toolsConfig)
           break
         }
         case 'agents': {

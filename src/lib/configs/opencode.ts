@@ -1,6 +1,6 @@
-import type { ToolConfig } from '../types/config'
 import { convertToOpenCodeAgent } from '../converters/agent'
 import { convertToOpenCodeFormat } from '../converters/mcp'
+import type { ToolConfig } from '../types/config'
 
 export const opencodeConfig: ToolConfig = {
   name: 'OpenCode',
@@ -10,7 +10,7 @@ export const opencodeConfig: ToolConfig = {
     target: '~/.config/opencode/commands',
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.config/opencode/skills',
   },
   instructions: {

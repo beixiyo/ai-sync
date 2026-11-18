@@ -1,6 +1,6 @@
-import type { ToolConfig } from '../types/config'
 import { convertToUniversalAgent } from '../converters/agent'
 import { convertToGeminiFormat } from '../converters/mcp'
+import type { ToolConfig } from '../types/config'
 
 export const iflowConfig: ToolConfig = {
   name: 'IFlow CLI',
@@ -11,7 +11,7 @@ export const iflowConfig: ToolConfig = {
     convert: true,
   },
   skills: {
-    source: '.claude/skills',
+    source: '.agents/skills',
     target: '~/.iflow/skills',
   },
   instructions: {
